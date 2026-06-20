@@ -1,0 +1,19 @@
+# Convenience Postgres for local development.
+#   docker compose up -d
+# Matches the defaults in backend/.env.example
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: physio_clinic_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: physio_clinic
+    ports:
+      - '5432:5432'
+    volumes:
+      - physio_pgdata:/var/lib/postgresql/data
+
+volumes:
+  physio_pgdata:

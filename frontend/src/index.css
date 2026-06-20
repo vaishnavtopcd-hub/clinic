@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ---- Theme tokens (space-separated RGB channels) ---- */
+  :root {
+    color-scheme: light;
+    --bg: 248 249 253;
+    --fg: 30 41 59; /* slate-800 */
+    --card: 255 255 255;
+    --card-fg: 30 41 59;
+    --muted: 241 245 249; /* slate-100 */
+    --muted-fg: 100 116 139; /* slate-500 */
+    --border: 226 232 240; /* slate-200 */
+    --input: 203 213 225; /* slate-300 */
+    --ring: 124 78 230; /* violet */
+    --primary: 124 78 230; /* #7c4ee6 */
+    --primary-fg: 255 255 255;
+    --secondary: 241 245 249;
+    --secondary-fg: 51 65 85; /* slate-700 */
+    --accent: 240 152 15; /* #f0980f amber */
+    --accent-fg: 255 255 255;
+    --success: 22 163 74; /* green-600 */
+    --warning: 217 119 6; /* amber-600 */
+    --error: 220 38 38; /* red-600 */
+    --info: 37 99 235; /* blue-600 */
+  }
+
+  .dark {
+    color-scheme: dark;
+    --bg: 15 23 42; /* #0F172A slate-900 */
+    --fg: 226 232 240; /* slate-200 */
+    --card: 30 41 59; /* #1E293B slate-800 */
+    --card-fg: 226 232 240;
+    --muted: 51 65 85; /* slate-700 */
+    --muted-fg: 148 163 184; /* slate-400 */
+    --border: 51 65 85; /* slate-700 */
+    --input: 71 85 105; /* slate-600 */
+    --ring: 154 120 255; /* bright violet */
+    --primary: 154 120 255; /* #9a78ff */
+    --primary-fg: 255 255 255;
+    --secondary: 51 65 85;
+    --secondary-fg: 226 232 240;
+    --accent: 245 173 50; /* brighter amber */
+    --accent-fg: 30 41 59;
+    --success: 74 222 128; /* green-400 */
+    --warning: 251 191 36; /* amber-400 */
+    --error: 248 113 113; /* red-400 */
+    --info: 96 165 250; /* blue-400 */
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-sm shadow-brand-600/30 hover:from-brand-600 hover:to-brand-700 hover:shadow-md hover:shadow-brand-600/40 active:scale-[.98];
+  }
+  .btn-secondary {
+    @apply btn border border-border bg-card text-foreground shadow-sm hover:bg-muted;
+  }
+  .btn-danger {
+    @apply btn bg-error text-white shadow-sm shadow-error/30 hover:opacity-90;
+  }
+  .input {
+    @apply w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground shadow-sm transition placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/30;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-muted-foreground;
+  }
+  .card {
+    @apply rounded-2xl border border-border bg-card text-card-foreground shadow-sm shadow-slate-900/5;
+  }
+}
