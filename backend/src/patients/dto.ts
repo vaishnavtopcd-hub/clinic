@@ -15,16 +15,14 @@ export class CreatePatientDto {
   @IsNotEmpty()
   fullName: string;
 
-  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   @Max(150)
-  age?: number;
+  age: number;
 
-  @IsOptional()
   @IsEnum(Gender)
-  gender?: Gender;
+  gender: Gender;
 
   @IsOptional()
   @IsString()

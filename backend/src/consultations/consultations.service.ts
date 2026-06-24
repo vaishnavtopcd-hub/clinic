@@ -166,6 +166,7 @@ export class ConsultationsService {
     const consultation = await repo.findOne({
       where: { id, clinicId: actor.clinicId },
       relations: [
+        'clinic',
         'patient',
         'physiotherapist',
         'clinicalNote',

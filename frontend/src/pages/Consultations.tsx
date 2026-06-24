@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, fetchAllPaginated } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
 import type { Paginated, Consultation, PaymentStatus } from '../lib/types';
 import {
@@ -13,15 +13,31 @@ import {
   PaymentBadge,
 } from '../components/ui';
 import { currency, formatDateTime } from '../lib/format';
+import { ExportMenu } from '../components/ExportMenu';
+import { DateRangeFilter } from '../components/DateRangeFilter';
+import type { ExportColumn } from '../lib/export';
+
+const EXPORT_COLUMNS: ExportColumn<Consultation>[] = [
+  { header: 'Date', value: (c) => formatDateTime(c.consultationDate) },
+  { header: 'Patient', value: (c) => c.patient?.fullName ?? '' },
+  { header: 'Physiotherapist', value: (c) => c.physiotherapist?.name ?? '' },
+  { header: 'Diagnosis', value: (c) => c.diagnosis ?? '' },
+  { header: 'Fee', value: (c) => c.payment?.consultationFee ?? '' },
+  { header: 'Payment', value: (c) => c.payment?.status ?? '' },
+];
 
 export default function Consultations() {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
+  // Super admin views clinic data read-only via the global clinic selector.
+  const canWrite = (perm: string) => can(perm) && user?.role !== 'SUPER_ADMIN';
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<PaymentStatus | ''>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const list = useQuery({
-    queryKey: ['consultations', page, search, status],
+    queryKey: ['consultations', page, search, status, dateFrom, dateTo],
     queryFn: async () =>
       (
         await api.get<Paginated<Consultation>>('/consultations', {
@@ -30,6 +46,8 @@ export default function Consultations() {
             limit: 10,
             search: search || undefined,
             paymentStatus: status || undefined,
+            dateFrom: dateFrom || undefined,
+            dateTo: dateTo || undefined,
           },
         })
       ).data,
@@ -41,7 +59,7 @@ export default function Consultations() {
         title="Consultations"
         subtitle="All patient visits, latest first"
         action={
-          can('consultations.create') && (
+          canWrite('consultations.create') && (
             <Link to="/consultations/new" className="btn-primary">
               + New Consultation
             </Link>
@@ -72,6 +90,30 @@ export default function Consultations() {
             <option value="PAID">Paid</option>
             <option value="DUE">Due</option>
           </select>
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onChange={({ from, to }) => {
+              setDateFrom(from);
+              setDateTo(to);
+              setPage(1);
+            }}
+          />
+          <div className="ml-auto">
+            <ExportMenu
+              filename="consultations"
+              title="Consultations"
+              columns={EXPORT_COLUMNS}
+              fetchRows={() =>
+                fetchAllPaginated<Consultation>('/consultations', {
+                  search: search || undefined,
+                  paymentStatus: status || undefined,
+                  dateFrom: dateFrom || undefined,
+                  dateTo: dateTo || undefined,
+                })
+              }
+            />
+          </div>
         </div>
 
         {list.isLoading ? (

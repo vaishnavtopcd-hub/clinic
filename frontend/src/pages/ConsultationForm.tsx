@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api, apiError } from '../lib/api';
@@ -23,8 +23,11 @@ export default function ConsultationForm() {
   const [params] = useSearchParams();
   const presetPatient = params.get('patientId') ?? '';
 
-  const [patientId, setPatientId] = useState(presetPatient);
+  const [selected, setSelected] = useState<Patient | null>(null);
   const [patientSearch, setPatientSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const [debounced, setDebounced] = useState('');
   const [date, setDate] = useState(todayISO());
   const [details, setDetails] = useState({
     chiefComplaint: '',
@@ -48,31 +51,51 @@ export default function ConsultationForm() {
   });
   const [error, setError] = useState('');
 
+  // Debounce so we don't fire a request on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(patientSearch.trim()), 250);
+    return () => clearTimeout(t);
+  }, [patientSearch]);
+  useEffect(() => setHighlight(0), [debounced]);
+
   const patientList = useQuery({
-    queryKey: ['patients-select', patientSearch],
+    queryKey: ['patients-select', debounced],
+    enabled: debounced.length >= 1,
     queryFn: async () =>
       (
         await api.get<Paginated<Patient>>('/patients', {
-          params: { page: 1, limit: 20, search: patientSearch || undefined },
+          params: { page: 1, limit: 8, search: debounced },
+        })
+      ).data,
+  });
+  const results = patientList.data?.data ?? [];
+
+  const machineList = useQuery({
+    // Faulty machines (with an open complaint) are excluded from consultations.
+    queryKey: ['machines-active', 'for-consultation'],
+    queryFn: async () =>
+      (
+        await api.get<Machine[]>('/machines/active', {
+          params: { excludeComplained: true },
         })
       ).data,
   });
 
-  const machineList = useQuery({
-    queryKey: ['machines-active'],
+  // When opened from a patient's page (?patientId=…), preload that patient.
+  const presetQuery = useQuery({
+    queryKey: ['patient', presetPatient],
+    enabled: !!presetPatient,
     queryFn: async () =>
-      (await api.get<Machine[]>('/machines/active')).data,
+      (await api.get<Patient>(`/patients/${presetPatient}`)).data,
   });
-
-  const selectedPatient = useMemo(
-    () => patientList.data?.data.find((p) => p.id === patientId),
-    [patientList.data, patientId],
-  );
+  useEffect(() => {
+    if (presetQuery.data) setSelected(presetQuery.data);
+  }, [presetQuery.data]);
 
   const save = useMutation({
     mutationFn: async () => {
       const payload = {
-        patientId,
+        patientId: selected!.id,
         consultationDate: date,
         ...details,
         clinicalNote: {
@@ -102,10 +125,33 @@ export default function ConsultationForm() {
     onError: (e) => setError(apiError(e)),
   });
 
+  const choosePatient = (p: Patient) => {
+    setSelected(p);
+    setPatientSearch('');
+    setSearchOpen(false);
+  };
+
+  const onSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (!searchOpen || debounced.length < 1) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlight((h) => Math.min(h + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlight((h) => Math.max(h - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault(); // don't submit the form while picking
+      const p = results[highlight];
+      if (p) choosePatient(p);
+    } else if (e.key === 'Escape') {
+      setSearchOpen(false);
+    }
+  };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!patientId) {
+    if (!selected) {
       setError('Please select a patient');
       return;
     }
@@ -126,40 +172,95 @@ export default function ConsultationForm() {
         {/* Step 1: Patient */}
         <Card>
           <SectionTitle n={1} title="Patient" />
-          {presetPatient && selectedPatient ? (
-            <div className="rounded-lg bg-primary/10 px-4 py-3">
-              <p className="font-medium text-primary">
-                {selectedPatient.fullName}
-              </p>
-              <p className="text-sm text-primary">
-                {selectedPatient.patientCode} · {selectedPatient.phone}
-              </p>
+          {selected ? (
+            <div className="flex items-center justify-between rounded-lg bg-primary/10 px-4 py-3">
+              <div>
+                <p className="font-medium text-primary">{selected.fullName}</p>
+                <p className="text-sm text-muted-foreground">
+                  {selected.patientCode} · {selected.phone}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-sm font-medium text-primary hover:underline"
+                onClick={() => {
+                  setSelected(null);
+                  setPatientSearch('');
+                }}
+              >
+                Change
+              </button>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Search patient">
-                <input
-                  className="input"
-                  placeholder="Name or phone…"
-                  value={patientSearch}
-                  onChange={(e) => setPatientSearch(e.target.value)}
-                />
-              </Field>
-              <Field label="Select patient" required>
-                <select
-                  className="input"
-                  value={patientId}
-                  onChange={(e) => setPatientId(e.target.value)}
-                  required
-                >
-                  <option value="">Select…</option>
-                  {patientList.data?.data.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.fullName} ({p.patientCode}) · {p.phone}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+            <div className="relative">
+              <label className="label">
+                Search patient <span className="text-error">*</span>
+              </label>
+              <input
+                className="input"
+                placeholder="Search by name, phone or patient ID…"
+                value={patientSearch}
+                onChange={(e) => {
+                  setPatientSearch(e.target.value);
+                  setSearchOpen(true);
+                }}
+                onFocus={() => setSearchOpen(true)}
+                onBlur={() => setSearchOpen(false)}
+                onKeyDown={onSearchKeyDown}
+                autoFocus
+                role="combobox"
+                aria-expanded={searchOpen && debounced.length >= 1}
+                aria-autocomplete="list"
+              />
+              {!debounced && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Type a name, phone or patient ID to search.
+                </p>
+              )}
+              {searchOpen && debounced.length >= 1 && (
+                <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+                  {patientList.isFetching ? (
+                    <p className="p-3 text-sm text-muted-foreground">Searching…</p>
+                  ) : !results.length ? (
+                    <p className="p-3 text-sm text-muted-foreground">
+                      No patients match “{debounced}”
+                    </p>
+                  ) : (
+                    <ul className="max-h-72 overflow-y-auto">
+                      {results.map((p, i) => (
+                        <li key={p.id}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onMouseEnter={() => setHighlight(i)}
+                            onClick={() => choosePatient(p)}
+                            className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition ${
+                              i === highlight ? 'bg-muted' : 'hover:bg-muted'
+                            }`}
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate font-medium text-foreground">
+                                {p.fullName}
+                              </span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {p.phone}
+                                {p.age
+                                  ? ` · ${p.age}${
+                                      p.gender ? ' / ' + p.gender[0] : ''
+                                    }`
+                                  : ''}
+                              </span>
+                            </span>
+                            <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                              {p.patientCode}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </Card>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, fetchAllPaginated } from '../lib/api';
 import type {
   Paginated,
   Consultation,
@@ -18,10 +18,67 @@ import {
   PaymentBadge,
 } from '../components/ui';
 import { currency, formatDateTime } from '../lib/format';
+import { ExportMenu } from '../components/ExportMenu';
+import { DateRangeFilter } from '../components/DateRangeFilter';
+import type { ExportColumn } from '../lib/export';
+
+const EXPORT_COLUMNS: ExportColumn<Consultation>[] = [
+  { header: 'Date', value: (c) => formatDateTime(c.consultationDate) },
+  { header: 'Patient', value: (c) => c.patient?.fullName ?? '' },
+  { header: 'Fee', value: (c) => c.payment?.consultationFee ?? 0 },
+  { header: 'Paid', value: (c) => c.payment?.amountPaid ?? 0 },
+  { header: 'Method', value: (c) => c.payment?.method ?? '' },
+  { header: 'Status', value: (c) => c.payment?.status ?? '' },
+];
+
+type DatePreset = 'all' | 'today' | 'week' | 'month' | 'custom';
+
+const DATE_PRESETS: { key: DatePreset; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'today', label: 'Today' },
+  { key: 'week', label: 'This Week' },
+  { key: 'month', label: 'This Month' },
+  { key: 'custom', label: 'Custom' },
+];
+
+/** Local (not UTC) YYYY-MM-DD for the given date. */
+const localYmd = (d: Date) =>
+  new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+/** Resolve a preset to a [from, to] range; '' means no bound. */
+function presetRange(preset: DatePreset): { from: string; to: string } {
+  const now = new Date();
+  const today = localYmd(now);
+  if (preset === 'today') return { from: today, to: today };
+  if (preset === 'week') {
+    const d = new Date(now);
+    // Week starts Monday: shift back (weekday+6)%7 days.
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return { from: localYmd(d), to: today };
+  }
+  if (preset === 'month') {
+    const d = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { from: localYmd(d), to: today };
+  }
+  return { from: '', to: '' }; // 'all' / 'custom'
+}
 
 export default function Payments() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<PaymentStatus | ''>('DUE');
+  const [preset, setPreset] = useState<DatePreset>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const applyPreset = (p: DatePreset) => {
+    setPreset(p);
+    setPage(1);
+    if (p !== 'custom') {
+      const { from, to } = presetRange(p);
+      setDateFrom(from);
+      setDateTo(to);
+    }
+  };
 
   const dash = useQuery({
     queryKey: ['payment-dashboard'],
@@ -30,11 +87,17 @@ export default function Payments() {
   });
 
   const list = useQuery({
-    queryKey: ['payments-consultations', page, status],
+    queryKey: ['payments-consultations', page, status, dateFrom, dateTo],
     queryFn: async () =>
       (
         await api.get<Paginated<Consultation>>('/consultations', {
-          params: { page, limit: 10, paymentStatus: status || undefined },
+          params: {
+            page,
+            limit: 10,
+            paymentStatus: status || undefined,
+            dateFrom: dateFrom || undefined,
+            dateTo: dateTo || undefined,
+          },
         })
       ).data,
   });
@@ -72,7 +135,7 @@ export default function Payments() {
       </div>
 
       <Card className="!p-0">
-        <div className="flex gap-3 border-b border-border p-4">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border p-4">
           {(['DUE', 'PAID', ''] as const).map((s) => (
             <button
               key={s || 'ALL'}
@@ -89,6 +152,49 @@ export default function Payments() {
               {s === '' ? 'All' : s === 'DUE' ? 'Due' : 'Paid'}
             </button>
           ))}
+
+          <span className="mx-1 h-6 w-px bg-border" />
+
+          {DATE_PRESETS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => applyPreset(p.key)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                preset === p.key
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-muted text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+
+          {preset === 'custom' && (
+            <DateRangeFilter
+              from={dateFrom}
+              to={dateTo}
+              onChange={({ from, to }) => {
+                setDateFrom(from);
+                setDateTo(to);
+                setPage(1);
+              }}
+            />
+          )}
+
+          <div className="ml-auto">
+            <ExportMenu
+              filename="payments"
+              title="Payments"
+              columns={EXPORT_COLUMNS}
+              fetchRows={() =>
+                fetchAllPaginated<Consultation>('/consultations', {
+                  paymentStatus: status || undefined,
+                  dateFrom: dateFrom || undefined,
+                  dateTo: dateTo || undefined,
+                })
+              }
+            />
+          </div>
         </div>
 
         {list.isLoading ? (

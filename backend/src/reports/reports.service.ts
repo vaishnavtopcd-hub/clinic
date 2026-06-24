@@ -156,6 +156,7 @@ export class ReportsService {
       .select('u.id', 'physiotherapistId')
       .addSelect('u.name', 'name')
       .addSelect('COUNT(DISTINCT c.id)', 'consultations')
+      .addSelect('COUNT(DISTINCT c.patientId)', 'patients')
       .addSelect('COALESCE(SUM(payment.amountPaid), 0)', 'collected')
       .where('c.clinicId = :clinicId', { clinicId })
       .andWhere('c.consultationDate BETWEEN :from AND :to', { from, to })
@@ -168,6 +169,7 @@ export class ReportsService {
         physiotherapistId: r.physiotherapistId,
         name: r.name,
         consultations: Number(r.consultations),
+        patients: Number(r.patients),
         collected: Number(r.collected),
       })),
     };

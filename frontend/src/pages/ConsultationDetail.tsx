@@ -14,11 +14,12 @@ import {
   Modal,
 } from '../components/ui';
 import { currency, formatDateTime } from '../lib/format';
+import { generateInvoice } from '../lib/invoice';
 
 export default function ConsultationDetail() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const [editPay, setEditPay] = useState(false);
   const [error, setError] = useState('');
   const [pay, setPay] = useState({
@@ -68,9 +69,23 @@ export default function ConsultationDetail() {
         title="Consultation"
         subtitle={formatDateTime(c.consultationDate)}
         action={
-          <Link to={`/patients/${c.patientId}`} className="btn-secondary">
-            View Patient
-          </Link>
+          <div className="flex gap-2">
+            <button
+              className="btn-secondary"
+              disabled={!c.payment}
+              title={c.payment ? 'Download invoice PDF' : 'No payment to invoice yet'}
+              onClick={() =>
+                generateInvoice(c, {
+                  clinicName: c.clinic?.name ?? user?.clinic?.name,
+                })
+              }
+            >
+              Download Invoice
+            </button>
+            <Link to={`/patients/${c.patientId}`} className="btn-secondary">
+              View Patient
+            </Link>
+          </div>
         }
       />
 
@@ -168,7 +183,7 @@ export default function ConsultationDetail() {
               />
             </dl>
           )}
-          {can('payments.update') && (
+          {can('payments.update') && user?.role !== 'SUPER_ADMIN' && (
             <button className="btn-primary mt-4 w-full" onClick={openEditPay}>
               Update Payment
             </button>

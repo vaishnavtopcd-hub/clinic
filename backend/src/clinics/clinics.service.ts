@@ -4,13 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Clinic } from './clinic.entity';
 import { User } from '../users/user.entity';
 import { CreateClinicDto, UpdateClinicDto } from './dto';
 import { Role } from '../common/enums';
-import { PaginationQuery, paginate } from '../common/pagination';
+import { PaginationQuery, paginate, applyDateRange } from '../common/pagination';
 
 @Injectable()
 export class ClinicsService {
@@ -30,11 +30,44 @@ export class ClinicsService {
         ),
       );
     }
+    applyDateRange(qb, 'c.createdAt', query.dateFrom, query.dateTo);
+
     const [data, total] = await qb
       .skip((query.page - 1) * query.limit)
       .take(query.limit)
       .getManyAndCount();
-    return paginate(data, total, query.page, query.limit);
+
+    // Attach each clinic's admin(s) so the UI can show / manage assignment.
+    const adminsByClinic = await this.adminsForClinics(data.map((c) => c.id));
+    const withAdmins = data.map((c) => ({
+      ...c,
+      admins: adminsByClinic.get(c.id) ?? [],
+    }));
+    return paginate(withAdmins, total, query.page, query.limit);
+  }
+
+  /** Map of clinicId -> its Clinic Admin accounts (id/name/email/status). */
+  private async adminsForClinics(clinicIds: string[]) {
+    const map = new Map<
+      string,
+      { id: string; name: string; email: string; isActive: boolean }[]
+    >();
+    if (clinicIds.length === 0) return map;
+    const admins = await this.users.find({
+      where: { role: Role.CLINIC_ADMIN, clinicId: In(clinicIds) },
+      order: { createdAt: 'ASC' },
+    });
+    for (const a of admins) {
+      const list = map.get(a.clinicId!) ?? [];
+      list.push({
+        id: a.id,
+        name: a.name,
+        email: a.email,
+        isActive: a.isActive,
+      });
+      map.set(a.clinicId!, list);
+    }
+    return map;
   }
 
   async findOne(id: string) {
@@ -44,37 +77,50 @@ export class ClinicsService {
   }
 
   async create(dto: CreateClinicDto) {
-    const clinic = await this.clinics.save(
-      this.clinics.create({
-        name: dto.name,
-        address: dto.address,
-        phone: dto.phone,
-        email: dto.email,
-        isActive: true,
-        settings: {},
-      }),
-    );
-
-    // Optionally bootstrap a clinic admin in the same call.
-    if (dto.adminEmail && dto.adminPassword && dto.adminName) {
+    // Bootstrap admin is optional, but if requested all fields are required.
+    const wantsAdmin = !!(dto.adminName || dto.adminEmail || dto.adminPassword);
+    if (wantsAdmin) {
+      if (!dto.adminName || !dto.adminEmail || !dto.adminPassword) {
+        throw new BadRequestException(
+          'Clinic admin requires name, email and password together',
+        );
+      }
       const exists = await this.users.findOne({
         where: { email: dto.adminEmail.toLowerCase() },
       });
       if (exists) {
         throw new BadRequestException('Admin email already in use');
       }
-      await this.users.save(
-        this.users.create({
-          clinicId: clinic.id,
-          name: dto.adminName,
-          email: dto.adminEmail.toLowerCase(),
-          passwordHash: await bcrypt.hash(dto.adminPassword, 10),
-          role: Role.CLINIC_ADMIN,
+    }
+
+    // Create the clinic and its first admin atomically so a failed admin
+    // never leaves an orphan clinic behind.
+    return this.clinics.manager.transaction(async (em) => {
+      const clinic = await em.save(
+        em.create(Clinic, {
+          name: dto.name,
+          address: dto.address,
+          phone: dto.phone,
+          email: dto.email,
           isActive: true,
+          settings: {},
         }),
       );
-    }
-    return clinic;
+
+      if (wantsAdmin) {
+        await em.save(
+          em.create(User, {
+            clinicId: clinic.id,
+            name: dto.adminName,
+            email: dto.adminEmail!.toLowerCase(),
+            passwordHash: await bcrypt.hash(dto.adminPassword!, 10),
+            role: Role.CLINIC_ADMIN,
+            isActive: true,
+          }),
+        );
+      }
+      return clinic;
+    });
   }
 
   async update(id: string, dto: UpdateClinicDto) {

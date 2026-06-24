@@ -48,15 +48,57 @@ export const PERMISSION_CATALOG: {
     ],
   },
   {
+    group: 'Machine Complaints',
+    permissions: [
+      { key: 'machine-complaints.view', label: 'View machine complaints' },
+      {
+        key: 'machine-complaints.manage',
+        label: 'Report / inspect / resolve complaints',
+      },
+    ],
+  },
+  {
     group: 'Reports',
     permissions: [{ key: 'reports.view', label: 'View reports' }],
   },
   {
-    group: 'Users',
+    group: 'HR — Staff',
     permissions: [
-      { key: 'users.view', label: 'View users' },
-      { key: 'users.manage', label: 'Manage users' },
+      { key: 'hr.staff.view', label: 'View staff' },
+      { key: 'hr.staff.manage', label: 'Manage staff' },
     ],
+  },
+  {
+    group: 'HR — Employment',
+    permissions: [
+      { key: 'hr.employees.view', label: 'View employment' },
+      { key: 'hr.employees.manage', label: 'Manage employment' },
+    ],
+  },
+  {
+    group: 'HR — Attendance',
+    permissions: [
+      { key: 'hr.attendance.view', label: 'View attendance' },
+      { key: 'hr.attendance.manage', label: 'Mark attendance' },
+    ],
+  },
+  {
+    group: 'HR — Leave',
+    permissions: [
+      { key: 'hr.leave.view', label: 'View leave requests' },
+      { key: 'hr.leave.manage', label: 'Create / approve leave' },
+    ],
+  },
+  {
+    group: 'HR — Payroll',
+    permissions: [
+      { key: 'hr.payroll.view', label: 'View payroll' },
+      { key: 'hr.payroll.manage', label: 'Manage payroll' },
+    ],
+  },
+  {
+    group: 'HR — Reports',
+    permissions: [{ key: 'hr.reports.view', label: 'View HR reports' }],
   },
 ];
 
@@ -65,18 +107,33 @@ export const ALL_PERMISSION_KEYS: string[] = PERMISSION_CATALOG.flatMap((g) =>
   g.permissions.map((p) => p.key),
 );
 
+/** Every HR-module permission key. */
+export const HR_PERMISSION_KEYS: string[] = ALL_PERMISSION_KEYS.filter((k) =>
+  k.startsWith('hr.'),
+);
+
 /** Roles whose permissions can be configured in the matrix. */
 export const CONFIGURABLE_ROLES: Role[] = [
   Role.CLINIC_ADMIN,
   Role.PHYSIOTHERAPIST,
+  Role.HR,
 ];
 
 /**
  * Fallback permissions used when no row exists in the DB yet.
- * Mirrors the original hard-coded RBAC behaviour.
+ *
+ * Role hierarchy:
+ * - Clinic Admin runs the clinic's operations only (patients, consultations,
+ *   payments, machines, reports). The entire HR module — including staff-account
+ *   management — belongs to the HR role.
+ * - HR owns the whole HR module: staff accounts, employment, attendance, leave,
+ *   payroll and HR reports (scoped to their own clinic).
  */
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
-  [Role.CLINIC_ADMIN]: [...ALL_PERMISSION_KEYS],
+  // Clinic admin gets every operational permission, but NOT the HR module.
+  [Role.CLINIC_ADMIN]: ALL_PERMISSION_KEYS.filter((k) => !k.startsWith('hr.')),
+  // HR role owns the entire HR module (staff accounts + operational records).
+  [Role.HR]: [...HR_PERMISSION_KEYS],
   [Role.PHYSIOTHERAPIST]: [
     'dashboard.view',
     'patients.view',

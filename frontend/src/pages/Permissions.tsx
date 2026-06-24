@@ -8,6 +8,7 @@ import { PageHeader, Card, Spinner, ErrorText } from '../components/ui';
 const ROLE_LABELS: Record<string, string> = {
   CLINIC_ADMIN: 'Clinic Admin',
   PHYSIOTHERAPIST: 'Physiotherapist',
+  HR: 'HR',
 };
 
 const cloneMatrix = (data: Record<string, string[]>) => {

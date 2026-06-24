@@ -5,6 +5,10 @@ import { Clinic } from '../clinics/clinic.entity';
 
 @Entity('users')
 @Index(['email'], { unique: true, where: '"deletedAt" IS NULL' })
+@Index(['username'], {
+  unique: true,
+  where: '"deletedAt" IS NULL AND "username" IS NOT NULL',
+})
 export class User extends BaseEntity {
   /** Null for SUPER_ADMIN (not bound to a single clinic). */
   @Column({ type: 'uuid', nullable: true })
@@ -20,8 +24,20 @@ export class User extends BaseEntity {
   @Column()
   email: string;
 
+  /** Optional unique login alias (login still uses email). */
+  @Column({ nullable: true })
+  username?: string;
+
   @Column({ nullable: true })
   phone?: string;
+
+  /** Optional free-text department/team label. */
+  @Column({ nullable: true })
+  department?: string;
+
+  /** Optional profile photo stored as a base64 data URL. */
+  @Column({ type: 'text', nullable: true })
+  photoUrl?: string;
 
   @Column({ select: false })
   passwordHash: string;

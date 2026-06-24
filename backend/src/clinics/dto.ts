@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MinLength,
 } from 'class-validator';
 
 export class CreateClinicDto {
@@ -24,8 +25,10 @@ export class CreateClinicDto {
   email?: string;
 
   // Optional: create the first clinic admin together with the clinic.
+  // All three must be supplied together (validated in the service).
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   adminName?: string;
 
   @IsOptional()
@@ -34,6 +37,7 @@ export class CreateClinicDto {
 
   @IsOptional()
   @IsString()
+  @MinLength(6)
   adminPassword?: string;
 }
 

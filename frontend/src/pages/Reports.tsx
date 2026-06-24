@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, fetchAllPaginated } from '../lib/api';
 import { PageHeader, Card, Spinner, EmptyState, Pagination } from '../components/ui';
+import { ExportMenu } from '../components/ExportMenu';
+import type { ExportColumn } from '../lib/export';
 import { currency, formatDate, formatDateTime, todayISO } from '../lib/format';
 
 const REPORTS = [
@@ -14,6 +16,52 @@ const REPORTS = [
 ] as const;
 
 type ReportKey = (typeof REPORTS)[number]['key'];
+
+/** Columns for exporting each report type. */
+function reportColumns(tab: ReportKey): ExportColumn<any>[] {
+  switch (tab) {
+    case 'daily-patients':
+      return [
+        { header: 'Patient ID', value: (p) => p.patientCode },
+        { header: 'Name', value: (p) => p.fullName },
+        { header: 'Phone', value: (p) => p.phone },
+        { header: 'Registered', value: (p) => formatDate(p.createdAt) },
+      ];
+    case 'daily-consultations':
+      return [
+        { header: 'Date', value: (c) => formatDateTime(c.consultationDate) },
+        { header: 'Patient', value: (c) => c.patient?.fullName ?? '' },
+        { header: 'Physiotherapist', value: (c) => c.physiotherapist?.name ?? '' },
+        { header: 'Diagnosis', value: (c) => c.diagnosis ?? '' },
+        { header: 'Payment', value: (c) => c.payment?.status ?? '' },
+      ];
+    case 'daily-collection':
+    case 'pending-payments':
+      return [
+        { header: 'Patient', value: (p) => p.patient?.fullName ?? '' },
+        { header: 'Fee', value: (p) => p.consultationFee },
+        { header: 'Paid', value: (p) => p.amountPaid },
+        { header: 'Due', value: (p) => p.consultationFee - p.amountPaid },
+        { header: 'Method', value: (p) => p.method },
+        { header: 'Status', value: (p) => p.status },
+      ];
+    case 'machine-usage':
+      return [
+        { header: 'Machine', value: (r) => r.machineName },
+        { header: 'Times Used', value: (r) => r.uses },
+        { header: 'Total Minutes', value: (r) => r.totalMinutes },
+      ];
+    case 'physiotherapist-activity':
+      return [
+        { header: 'Physiotherapist', value: (r) => r.name },
+        { header: 'Patients', value: (r) => r.patients },
+        { header: 'Consultations', value: (r) => r.consultations },
+        { header: 'Collected', value: (r) => r.collected },
+      ];
+    default:
+      return [];
+  }
+}
 
 export default function Reports() {
   const [tab, setTab] = useState<ReportKey>('daily-patients');
@@ -36,6 +84,19 @@ export default function Reports() {
       <PageHeader
         title="Reports"
         subtitle="Operational and financial reports"
+        action={
+          <ExportMenu
+            filename={`report-${tab}`}
+            title={REPORTS.find((r) => r.key === tab)?.label ?? 'Report'}
+            columns={reportColumns(tab)}
+            fetchRows={() =>
+              fetchAllPaginated<any>(`/reports/${tab}`, {
+                dateFrom: from,
+                dateTo: to,
+              })
+            }
+          />
+        }
       />
 
       <div className="mb-5 flex flex-wrap gap-2">
@@ -91,6 +152,10 @@ export default function Reports() {
           </button>
         </div>
       </Card>
+
+      {tab === 'physiotherapist-activity' && !report.isLoading && (
+        <PhysioPatientsChart rows={report.data?.data ?? []} />
+      )}
 
       <Card className="!p-0 overflow-x-auto">
         {report.isLoading ? (
@@ -224,18 +289,53 @@ function ReportTable({ tab, data }: { tab: ReportKey; data: any }) {
   const rows = data.data ?? [];
   return (
     <table className="w-full text-sm">
-      <Header cols={['Physiotherapist', 'Consultations', 'Collected']} />
+      <Header cols={['Physiotherapist', 'Patients', 'Consultations', 'Collected']} />
       <tbody className="divide-y divide-border">
-        {rows.length === 0 && <EmptyRow span={3} />}
+        {rows.length === 0 && <EmptyRow span={4} />}
         {rows.map((r: any) => (
           <tr key={r.physiotherapistId}>
             <td className="px-4 py-3 font-medium">{r.name}</td>
+            <td className="px-4 py-3">{r.patients}</td>
             <td className="px-4 py-3">{r.consultations}</td>
             <td className="px-4 py-3 text-success">{currency(r.collected)}</td>
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** Horizontal bar chart of patients handled per physiotherapist. */
+function PhysioPatientsChart({ rows }: { rows: any[] }) {
+  if (!rows || rows.length === 0) return null;
+  const sorted = [...rows].sort((a, b) => b.patients - a.patients);
+  const max = Math.max(...sorted.map((r) => r.patients), 1);
+
+  return (
+    <Card className="mb-5">
+      <h3 className="mb-4 text-sm font-semibold text-foreground">
+        Patients per Physiotherapist
+      </h3>
+      <div className="space-y-3">
+        {sorted.map((r) => (
+          <div key={r.physiotherapistId} className="flex items-center gap-3">
+            <div className="w-32 shrink-0 truncate text-sm text-muted-foreground" title={r.name}>
+              {r.name}
+            </div>
+            <div className="flex-1">
+              <div className="h-6 rounded bg-muted">
+                <div
+                  className="flex h-6 items-center justify-end rounded bg-brand-600 px-2 text-xs font-medium text-white transition-all"
+                  style={{ width: `${Math.max((r.patients / max) * 100, 6)}%` }}
+                >
+                  {r.patients}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

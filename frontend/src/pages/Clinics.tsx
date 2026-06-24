@@ -14,11 +14,14 @@ import {
   StatusPill,
 } from '../components/ui';
 import { formatDate } from '../lib/format';
+import { DateRangeFilter } from '../components/DateRangeFilter';
 
 export default function Clinics() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Clinic | null>(null);
   const [error, setError] = useState('');
@@ -33,11 +36,17 @@ export default function Clinics() {
   });
 
   const list = useQuery({
-    queryKey: ['clinics', page, search],
+    queryKey: ['clinics', page, search, dateFrom, dateTo],
     queryFn: async () =>
       (
         await api.get<Paginated<Clinic>>('/clinics', {
-          params: { page, limit: 10, search: search || undefined },
+          params: {
+            page,
+            limit: 10,
+            search: search || undefined,
+            dateFrom: dateFrom || undefined,
+            dateTo: dateTo || undefined,
+          },
         })
       ).data,
   });
@@ -74,6 +83,35 @@ export default function Clinics() {
       api.patch(`/clinics/${c.id}/${c.isActive ? 'deactivate' : 'activate'}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['clinics'] }),
   });
+
+  // --- Assign a Clinic Admin to an existing clinic ---
+  const [adminModal, setAdminModal] = useState(false);
+  const [adminFor, setAdminFor] = useState<Clinic | null>(null);
+  const [adminForm, setAdminForm] = useState({ name: '', email: '', password: '' });
+  const [adminError, setAdminError] = useState('');
+
+  const addAdmin = useMutation({
+    mutationFn: async () =>
+      api.post('/hr/staff', {
+        name: adminForm.name,
+        email: adminForm.email,
+        password: adminForm.password,
+        role: 'CLINIC_ADMIN',
+        clinicId: adminFor!.id,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clinics'] });
+      setAdminModal(false);
+    },
+    onError: (e) => setAdminError(apiError(e)),
+  });
+
+  const openAddAdmin = (c: Clinic) => {
+    setAdminFor(c);
+    setAdminForm({ name: '', email: '', password: '' });
+    setAdminError('');
+    setAdminModal(true);
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -117,13 +155,22 @@ export default function Clinics() {
       />
 
       <Card className="!p-0">
-        <div className="border-b border-border p-4">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <input
             className="input max-w-sm"
             placeholder="Search clinics…"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onChange={({ from, to }) => {
+              setDateFrom(from);
+              setDateTo(to);
               setPage(1);
             }}
           />
@@ -139,6 +186,7 @@ export default function Clinics() {
               <thead className="bg-muted text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Clinic Admin</th>
                   <th className="px-4 py-3">Contact</th>
                   <th className="px-4 py-3">Created</th>
                   <th className="px-4 py-3">Status</th>
@@ -151,6 +199,32 @@ export default function Clinics() {
                     <td className="px-4 py-3">
                       <p className="font-medium text-foreground">{c.name}</p>
                       <p className="text-xs text-muted-foreground">{c.address}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {c.admins && c.admins.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {c.admins.map((a) => (
+                            <div key={a.id}>
+                              <span className="text-foreground">{a.name}</span>
+                              {!a.isActive && (
+                                <span className="ml-1 text-xs text-error">
+                                  (inactive)
+                                </span>
+                              )}
+                              <p className="text-xs text-muted-foreground">
+                                {a.email}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <button
+                          className="text-xs font-medium text-primary hover:underline"
+                          onClick={() => openAddAdmin(c)}
+                        >
+                          + Assign Admin
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {c.phone || '—'}
@@ -169,6 +243,12 @@ export default function Clinics() {
                         onClick={() => openEdit(c)}
                       >
                         Edit
+                      </button>
+                      <button
+                        className="ml-3 text-success hover:underline"
+                        onClick={() => openAddAdmin(c)}
+                      >
+                        Add Admin
                       </button>
                       <button
                         className="ml-3 text-muted-foreground hover:underline"
@@ -235,46 +315,61 @@ export default function Clinics() {
             />
           </Field>
 
-          {!editing && (
-            <div className="sm:col-span-2">
-              <div className="mt-2 rounded-lg bg-muted p-4">
-                <p className="mb-3 text-sm font-semibold text-muted-foreground">
-                  First Clinic Admin (optional)
-                </p>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <Field label="Admin Name">
-                    <input
-                      className="input"
-                      value={form.adminName}
-                      onChange={(e) =>
-                        setForm({ ...form, adminName: e.target.value })
-                      }
-                    />
-                  </Field>
-                  <Field label="Admin Email">
-                    <input
-                      type="email"
-                      className="input"
-                      value={form.adminEmail}
-                      onChange={(e) =>
-                        setForm({ ...form, adminEmail: e.target.value })
-                      }
-                    />
-                  </Field>
-                  <Field label="Admin Password">
-                    <input
-                      type="password"
-                      className="input"
-                      value={form.adminPassword}
-                      onChange={(e) =>
-                        setForm({ ...form, adminPassword: e.target.value })
-                      }
-                    />
-                  </Field>
+          {!editing &&
+            (() => {
+              // The admin trio is all-or-nothing: filling any one field makes
+              // the other two required (mirrors the backend validation).
+              const anyAdmin =
+                !!form.adminName || !!form.adminEmail || !!form.adminPassword;
+              return (
+                <div className="sm:col-span-2">
+                  <div className="mt-2 rounded-lg bg-muted p-4">
+                    <p className="mb-1 text-sm font-semibold text-muted-foreground">
+                      First Clinic Admin (optional)
+                    </p>
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      Assign a dedicated admin for this clinic. You can also add
+                      one later from the clinic list.
+                    </p>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <Field label="Admin Name" required={anyAdmin}>
+                        <input
+                          className="input"
+                          value={form.adminName}
+                          required={anyAdmin}
+                          onChange={(e) =>
+                            setForm({ ...form, adminName: e.target.value })
+                          }
+                        />
+                      </Field>
+                      <Field label="Admin Email" required={anyAdmin}>
+                        <input
+                          type="email"
+                          className="input"
+                          value={form.adminEmail}
+                          required={anyAdmin}
+                          onChange={(e) =>
+                            setForm({ ...form, adminEmail: e.target.value })
+                          }
+                        />
+                      </Field>
+                      <Field label="Admin Password" required={anyAdmin}>
+                        <input
+                          type="password"
+                          className="input"
+                          value={form.adminPassword}
+                          required={anyAdmin}
+                          minLength={6}
+                          onChange={(e) =>
+                            setForm({ ...form, adminPassword: e.target.value })
+                          }
+                        />
+                      </Field>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              );
+            })()}
 
           <div className="sm:col-span-2">
             <ErrorText message={error} />
@@ -294,6 +389,72 @@ export default function Clinics() {
                 {save.isPending ? 'Saving…' : editing ? 'Update' : 'Create'}
               </button>
             </div>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={adminModal}
+        onClose={() => setAdminModal(false)}
+        title={`Assign Clinic Admin${adminFor ? ` — ${adminFor.name}` : ''}`}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setAdminError('');
+            addAdmin.mutate();
+          }}
+          className="space-y-4"
+        >
+          <Field label="Admin Name" required>
+            <input
+              className="input"
+              value={adminForm.name}
+              onChange={(e) =>
+                setAdminForm({ ...adminForm, name: e.target.value })
+              }
+              required
+            />
+          </Field>
+          <Field label="Admin Email" required>
+            <input
+              type="email"
+              className="input"
+              value={adminForm.email}
+              onChange={(e) =>
+                setAdminForm({ ...adminForm, email: e.target.value })
+              }
+              required
+            />
+          </Field>
+          <Field label="Admin Password" required>
+            <input
+              type="password"
+              className="input"
+              value={adminForm.password}
+              onChange={(e) =>
+                setAdminForm({ ...adminForm, password: e.target.value })
+              }
+              required
+              minLength={6}
+            />
+          </Field>
+          <ErrorText message={adminError} />
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setAdminModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={addAdmin.isPending}
+            >
+              {addAdmin.isPending ? 'Assigning…' : 'Assign Admin'}
+            </button>
           </div>
         </form>
       </Modal>

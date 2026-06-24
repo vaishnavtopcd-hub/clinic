@@ -26,6 +26,7 @@ export class AuthService {
     const user = await this.users
       .createQueryBuilder('u')
       .addSelect('u.passwordHash')
+      .leftJoinAndSelect('u.clinic', 'clinic')
       .where('u.email = :email', { email: email.toLowerCase() })
       .getOne();
 
@@ -96,7 +97,10 @@ export class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
+      username: user.username,
       phone: user.phone,
+      department: user.department,
+      photoUrl: user.photoUrl,
       role: user.role,
       clinicId: user.clinicId,
       specialization: user.specialization,

@@ -9,38 +9,47 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto, ListUsersQuery } from './dto';
+import { HrUsersService } from './users.service';
+import { CreateUserDto, ListHrUsersQuery, UpdateUserDto } from './users.dto';
 import { Roles, CurrentUser, AuthUser } from '../common/decorators';
 import { Role } from '../common/enums';
 import { RequirePermissions } from '../permissions/permissions.guard';
 
-@ApiTags('users')
+// Staff-account management belongs to the HR role (and Super Admin).
+// Clinic Admins run clinic operations, not user/role administration.
+@ApiTags('hr/staff')
 @ApiBearerAuth()
-@Roles(Role.SUPER_ADMIN, Role.CLINIC_ADMIN)
-@Controller('users')
-export class UsersController {
-  constructor(private readonly users: UsersService) {}
+@Roles(Role.SUPER_ADMIN, Role.HR)
+@Controller('hr/staff')
+export class HrUsersController {
+  constructor(private readonly users: HrUsersService) {}
 
-  @RequirePermissions('users.view')
+  @RequirePermissions('hr.staff.view')
   @Get()
-  findAll(@CurrentUser() user: AuthUser, @Query() query: ListUsersQuery) {
+  findAll(@CurrentUser() user: AuthUser, @Query() query: ListHrUsersQuery) {
     return this.users.findAll(user, query);
   }
 
-  @RequirePermissions('users.view')
+  @RequirePermissions('hr.staff.view')
   @Get(':id')
   findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.users.findOne(user, id);
   }
 
-  @RequirePermissions('users.manage')
+  /** Performance & activity metrics for a staff member. */
+  @RequirePermissions('hr.staff.view')
+  @Get(':id/performance')
+  performance(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.users.performance(user, id);
+  }
+
+  @RequirePermissions('hr.staff.manage')
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateUserDto) {
     return this.users.create(user, dto);
   }
 
-  @RequirePermissions('users.manage')
+  @RequirePermissions('hr.staff.manage')
   @Patch(':id')
   update(
     @CurrentUser() user: AuthUser,
@@ -50,7 +59,7 @@ export class UsersController {
     return this.users.update(user, id, dto);
   }
 
-  @RequirePermissions('users.manage')
+  @RequirePermissions('hr.staff.manage')
   @Delete(':id')
   remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.users.remove(user, id);

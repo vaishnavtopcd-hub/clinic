@@ -7,7 +7,7 @@ import { RequirePermissions } from '../permissions/permissions.guard';
 
 @ApiTags('dashboard')
 @ApiBearerAuth()
-@Roles(Role.CLINIC_ADMIN, Role.PHYSIOTHERAPIST)
+@Roles(Role.SUPER_ADMIN, Role.CLINIC_ADMIN, Role.PHYSIOTHERAPIST)
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}

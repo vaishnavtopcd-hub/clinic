@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, apiError } from '../lib/api';
+import { api, apiError, fetchAllPaginated } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
 import type { Paginated, Patient, Gender } from '../lib/types';
 import {
@@ -15,6 +15,18 @@ import {
   ErrorText,
 } from '../components/ui';
 import { formatDate } from '../lib/format';
+import { ExportMenu } from '../components/ExportMenu';
+import { DateRangeFilter } from '../components/DateRangeFilter';
+import type { ExportColumn } from '../lib/export';
+
+const EXPORT_COLUMNS: ExportColumn<Patient>[] = [
+  { header: 'Patient ID', value: (p) => p.patientCode },
+  { header: 'Name', value: (p) => p.fullName },
+  { header: 'Age', value: (p) => p.age ?? '' },
+  { header: 'Gender', value: (p) => p.gender ?? '' },
+  { header: 'Phone', value: (p) => p.phone },
+  { header: 'Registered', value: (p) => formatDate(p.createdAt) },
+];
 
 const empty = {
   fullName: '',
@@ -30,20 +42,30 @@ const empty = {
 
 export default function Patients() {
   const qc = useQueryClient();
-  const { can } = useAuth();
+  const { can, user } = useAuth();
+  // Super admin views clinic data read-only via the global clinic selector.
+  const canWrite = (perm: string) => can(perm) && user?.role !== 'SUPER_ADMIN';
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Patient | null>(null);
   const [form, setForm] = useState({ ...empty });
   const [error, setError] = useState('');
 
   const list = useQuery({
-    queryKey: ['patients', page, search],
+    queryKey: ['patients', page, search, dateFrom, dateTo],
     queryFn: async () =>
       (
         await api.get<Paginated<Patient>>('/patients', {
-          params: { page, limit: 10, search: search || undefined },
+          params: {
+            page,
+            limit: 10,
+            search: search || undefined,
+            dateFrom: dateFrom || undefined,
+            dateTo: dateTo || undefined,
+          },
         })
       ).data,
   });
@@ -53,7 +75,7 @@ export default function Patients() {
       const payload: any = {
         fullName: form.fullName,
         phone: form.phone,
-        age: form.age ? Number(form.age) : undefined,
+        age: form.age !== '' ? Number(form.age) : undefined,
         gender: form.gender || undefined,
         dob: form.dob || undefined,
         bloodGroup: form.bloodGroup || undefined,
@@ -103,7 +125,7 @@ export default function Patients() {
         title="Patients"
         subtitle="Register and manage clinic patients"
         action={
-          can('patients.create') && (
+          canWrite('patients.create') && (
             <button className="btn-primary" onClick={openCreate}>
               + Register Patient
             </button>
@@ -112,7 +134,7 @@ export default function Patients() {
       />
 
       <Card className="!p-0">
-        <div className="border-b border-border p-4">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <input
             className="input max-w-sm"
             placeholder="Search by name, phone or patient ID…"
@@ -122,6 +144,29 @@ export default function Patients() {
               setPage(1);
             }}
           />
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onChange={({ from, to }) => {
+              setDateFrom(from);
+              setDateTo(to);
+              setPage(1);
+            }}
+          />
+          <div className="ml-auto">
+            <ExportMenu
+              filename="patients"
+              title="Patients"
+              columns={EXPORT_COLUMNS}
+              fetchRows={() =>
+                fetchAllPaginated<Patient>('/patients', {
+                  search: search || undefined,
+                  dateFrom: dateFrom || undefined,
+                  dateTo: dateTo || undefined,
+                })
+              }
+            />
+          </div>
         </div>
 
         {list.isLoading ? (
@@ -159,7 +204,7 @@ export default function Patients() {
                     <td className="px-4 py-3 text-muted-foreground">{p.phone}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDate(p.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
-                      {can('patients.edit') && (
+                      {canWrite('patients.edit') && (
                         <button
                           className="text-primary hover:underline"
                           onClick={() => openEdit(p)}
@@ -167,7 +212,7 @@ export default function Patients() {
                           Edit
                         </button>
                       )}
-                      {can('consultations.create') && (
+                      {canWrite('consultations.create') && (
                         <Link
                           to={`/consultations/new?patientId=${p.id}`}
                           className="ml-3 text-success hover:underline"
@@ -219,19 +264,23 @@ export default function Patients() {
               required
             />
           </Field>
-          <Field label="Age">
+          <Field label="Age" required>
             <input
               type="number"
               className="input"
               value={form.age}
               onChange={(e) => set('age', e.target.value)}
+              min={0}
+              max={150}
+              required
             />
           </Field>
-          <Field label="Gender">
+          <Field label="Gender" required>
             <select
               className="input"
               value={form.gender}
               onChange={(e) => set('gender', e.target.value)}
+              required
             >
               <option value="">Select…</option>
               <option value="MALE">Male</option>

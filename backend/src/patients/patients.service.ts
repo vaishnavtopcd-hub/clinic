@@ -8,7 +8,7 @@ import { Brackets, Repository } from 'typeorm';
 import { Patient } from './patient.entity';
 import { CreatePatientDto, UpdatePatientDto } from './dto';
 import { AuthUser } from '../common/decorators';
-import { PaginationQuery, paginate } from '../common/pagination';
+import { PaginationQuery, paginate, applyDateRange } from '../common/pagination';
 
 @Injectable()
 export class PatientsService {
@@ -33,6 +33,7 @@ export class PatientsService {
         ),
       );
     }
+    applyDateRange(qb, 'p.createdAt', query.dateFrom, query.dateTo);
 
     const [data, total] = await qb
       .skip((query.page - 1) * query.limit)

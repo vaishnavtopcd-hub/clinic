@@ -30,6 +30,8 @@ export class ConsultationsController {
     private readonly audit: AuditService,
   ) {}
 
+  // Read routes also allow Super Admin (read-only via the global clinic selector).
+  @Roles(Role.SUPER_ADMIN, Role.CLINIC_ADMIN, Role.PHYSIOTHERAPIST)
   @RequirePermissions('consultations.view')
   @Get()
   findAll(
@@ -39,6 +41,8 @@ export class ConsultationsController {
     return this.consultations.findAll(user, query);
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.CLINIC_ADMIN, Role.PHYSIOTHERAPIST)
+  @RequirePermissions('visit-history.view')
   @Get('patient/:patientId/history')
   history(
     @CurrentUser() user: AuthUser,
@@ -47,6 +51,8 @@ export class ConsultationsController {
     return this.consultations.visitHistory(user, patientId);
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.CLINIC_ADMIN, Role.PHYSIOTHERAPIST)
+  @RequirePermissions('payments.view')
   @Get('patient/:patientId/payment-summary')
   paymentSummary(
     @CurrentUser() user: AuthUser,
@@ -55,6 +61,8 @@ export class ConsultationsController {
     return this.consultations.patientPaymentSummary(user, patientId);
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.CLINIC_ADMIN, Role.PHYSIOTHERAPIST)
+  @RequirePermissions('consultations.view')
   @Get(':id')
   findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.consultations.findOne(user, id);

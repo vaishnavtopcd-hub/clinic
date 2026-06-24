@@ -4,18 +4,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, IsNull, Repository } from 'typeorm';
+import { Brackets, In, IsNull, Repository } from 'typeorm';
 import { Machine } from './machine.entity';
+import { MachineComplaint } from '../machine-complaints/machine-complaint.entity';
 import { CreateMachineDto, UpdateMachineDto } from './dto';
 import { AuthUser } from '../common/decorators';
-import { Role } from '../common/enums';
-import { PaginationQuery, paginate } from '../common/pagination';
+import { ComplaintStatus, Role } from '../common/enums';
+import { PaginationQuery, paginate, applyDateRange } from '../common/pagination';
 
 @Injectable()
 export class MachinesService {
   constructor(
     @InjectRepository(Machine)
     private readonly machines: Repository<Machine>,
+    @InjectRepository(MachineComplaint)
+    private readonly complaints: Repository<MachineComplaint>,
   ) {}
 
   /**
@@ -26,7 +29,9 @@ export class MachinesService {
   async findAll(actor: AuthUser, query: PaginationQuery) {
     const qb = this.machines.createQueryBuilder('m').orderBy('m.name', 'ASC');
 
-    if (actor.role === Role.SUPER_ADMIN) {
+    // No clinic context (super admin with no clinic selected) → global master
+    // machines only. Otherwise the clinic's own machines plus global ones.
+    if (!actor.clinicId) {
       qb.where('m.clinicId IS NULL');
     } else {
       qb.where(
@@ -41,6 +46,7 @@ export class MachinesService {
     if (query.search) {
       qb.andWhere('m.name ILIKE :s', { s: `%${query.search}%` });
     }
+    applyDateRange(qb, 'm.createdAt', query.dateFrom, query.dateTo);
 
     const [data, total] = await qb
       .skip((query.page - 1) * query.limit)
@@ -49,15 +55,31 @@ export class MachinesService {
     return paginate(data, total, query.page, query.limit);
   }
 
-  /** Active machines for selection in a consultation (no pagination). */
-  async listActive(actor: AuthUser) {
-    return this.machines.find({
+  /**
+   * Active machines for selection (no pagination).
+   * When `excludeComplained` is set, machines with an unresolved complaint
+   * (OPEN / UNDER_INSPECTION) in the actor's clinic are hidden — e.g. so a
+   * faulty machine can't be chosen for a new consultation.
+   */
+  async listActive(actor: AuthUser, excludeComplained = false) {
+    const machines = await this.machines.find({
       where: [
         { clinicId: actor.clinicId ?? undefined, isActive: true },
         { clinicId: IsNull(), isActive: true },
       ],
       order: { name: 'ASC' },
     });
+
+    if (!excludeComplained || !actor.clinicId) return machines;
+
+    const open = await this.complaints.find({
+      where: {
+        clinicId: actor.clinicId,
+        status: In([ComplaintStatus.OPEN, ComplaintStatus.UNDER_INSPECTION]),
+      },
+    });
+    const blocked = new Set(open.map((c) => c.machineId));
+    return machines.filter((m) => !blocked.has(m.id));
   }
 
   async findOne(actor: AuthUser, id: string) {

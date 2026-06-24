@@ -11,13 +11,14 @@ import { PermissionsGuard } from './permissions/permissions.guard';
 import { AuthModule } from './auth/auth.module';
 import { AuditModule } from './audit/audit.module';
 import { ClinicsModule } from './clinics/clinics.module';
-import { UsersModule } from './users/users.module';
 import { PatientsModule } from './patients/patients.module';
 import { MachinesModule } from './machines/machines.module';
 import { ConsultationsModule } from './consultations/consultations.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ReportsModule } from './reports/reports.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { HrModule } from './hr/hr.module';
+import { MachineComplaintsModule } from './machine-complaints/machine-complaints.module';
 
 @Module({
   imports: [
@@ -29,13 +30,14 @@ import { PermissionsModule } from './permissions/permissions.module';
     AuditModule,
     AuthModule,
     ClinicsModule,
-    UsersModule,
     PatientsModule,
     MachinesModule,
     ConsultationsModule,
     DashboardModule,
     ReportsModule,
     PermissionsModule,
+    HrModule,
+    MachineComplaintsModule,
   ],
   providers: [
     // Global auth: every route requires a valid JWT unless marked @Public().

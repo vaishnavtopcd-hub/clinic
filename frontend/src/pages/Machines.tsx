@@ -14,6 +14,7 @@ import {
   ErrorText,
   StatusPill,
 } from '../components/ui';
+import { DateRangeFilter } from '../components/DateRangeFilter';
 
 export default function Machines() {
   const { user, can } = useAuth();
@@ -23,17 +24,24 @@ export default function Machines() {
   const [editing, setEditing] = useState<Machine | null>(null);
   const [form, setForm] = useState({ name: '', description: '', isActive: true });
   const [error, setError] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const isSuper = user?.role === 'SUPER_ADMIN';
   // Super admin manages global machines; others need the machines.manage permission.
   const canManage = isSuper || can('machines.manage');
 
   const list = useQuery({
-    queryKey: ['machines', page],
+    queryKey: ['machines', page, dateFrom, dateTo],
     queryFn: async () =>
       (
         await api.get<Paginated<Machine>>('/machines', {
-          params: { page, limit: 10 },
+          params: {
+            page,
+            limit: 10,
+            dateFrom: dateFrom || undefined,
+            dateTo: dateTo || undefined,
+          },
         })
       ).data,
   });
@@ -97,6 +105,18 @@ export default function Machines() {
       />
 
       <Card className="!p-0">
+        <div className="flex flex-wrap gap-3 border-b border-border p-4">
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onChange={({ from, to }) => {
+              setDateFrom(from);
+              setDateTo(to);
+              setPage(1);
+            }}
+          />
+        </div>
+
         {list.isLoading ? (
           <Spinner />
         ) : !list.data?.data.length ? (

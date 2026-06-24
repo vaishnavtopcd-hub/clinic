@@ -22,17 +22,23 @@ import { RequirePermissions } from '../permissions/permissions.guard';
 export class MachinesController {
   constructor(private readonly machines: MachinesService) {}
 
-  // Any authenticated clinic user can list machines (needed for consultations).
+  // Any clinic user with view access can list machines (needed for consultations).
+  @RequirePermissions('machines.view')
   @Get()
   findAll(@CurrentUser() user: AuthUser, @Query() query: PaginationQuery) {
     return this.machines.findAll(user, query);
   }
 
+  @RequirePermissions('machines.view')
   @Get('active')
-  listActive(@CurrentUser() user: AuthUser) {
-    return this.machines.listActive(user);
+  listActive(
+    @CurrentUser() user: AuthUser,
+    @Query('excludeComplained') excludeComplained?: string,
+  ) {
+    return this.machines.listActive(user, excludeComplained === 'true');
   }
 
+  @RequirePermissions('machines.view')
   @Get(':id')
   findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.machines.findOne(user, id);

@@ -23,12 +23,16 @@ import { RequirePermissions } from '../permissions/permissions.guard';
 export class PatientsController {
   constructor(private readonly patients: PatientsService) {}
 
+  // Super admin gets read-only access (via the global clinic selector); writes
+  // remain limited to the class-level roles.
+  @Roles(Role.SUPER_ADMIN, Role.CLINIC_ADMIN, Role.PHYSIOTHERAPIST)
   @RequirePermissions('patients.view')
   @Get()
   findAll(@CurrentUser() user: AuthUser, @Query() query: PaginationQuery) {
     return this.patients.findAll(user.clinicId!, query);
   }
 
+  @Roles(Role.SUPER_ADMIN, Role.CLINIC_ADMIN, Role.PHYSIOTHERAPIST)
   @RequirePermissions('patients.view')
   @Get(':id')
   findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {

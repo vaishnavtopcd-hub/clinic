@@ -14,6 +14,7 @@ import { MachineUsage } from '../consultations/entities/machine-usage.entity';
 import { Payment } from '../consultations/entities/payment.entity';
 import { AuditLog } from '../audit/audit-log.entity';
 import { RolePermission } from '../permissions/role-permission.entity';
+import { MachineComplaint } from '../machine-complaints/machine-complaint.entity';
 import {
   Gender,
   PaymentMethod,
@@ -45,6 +46,7 @@ const ds = new DataSource({
     Payment,
     AuditLog,
     RolePermission,
+    MachineComplaint,
   ],
   synchronize: true,
 });
@@ -56,10 +58,16 @@ async function run() {
   const pw = await bcrypt.hash('Passw0rd!', 10);
 
   // --- Default role permissions (global) ---
+  // Refresh to the canonical defaults so the role hierarchy is enforced even on
+  // an existing database. (Super admin can still customise via the matrix UI;
+  // re-running the seed resets it to this baseline.)
   const rpRepo = ds.getRepository(RolePermission);
   for (const role of CONFIGURABLE_ROLES) {
-    const exists = await rpRepo.findOne({ where: { role } });
-    if (!exists) {
+    const existing = await rpRepo.findOne({ where: { role } });
+    if (existing) {
+      existing.permissions = DEFAULT_ROLE_PERMISSIONS[role];
+      await rpRepo.save(existing);
+    } else {
       await rpRepo.save(
         rpRepo.create({ role, permissions: DEFAULT_ROLE_PERMISSIONS[role] }),
       );
