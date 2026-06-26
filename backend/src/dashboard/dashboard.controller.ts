@@ -23,4 +23,10 @@ export class DashboardController {
   payments(@CurrentUser() user: AuthUser) {
     return this.dashboard.paymentDashboard(user.clinicId!);
   }
+
+  @RequirePermissions('dashboard.view')
+  @Get('trends')
+  trends(@CurrentUser() user: AuthUser) {
+    return this.dashboard.trends(user.clinicId!);
+  }
 }

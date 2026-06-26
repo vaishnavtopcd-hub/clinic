@@ -40,22 +40,22 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST'], perm: 'dashboard.view', requiresClinic: true },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER'], perm: 'dashboard.view', requiresClinic: true },
   { to: '/clinics', label: 'Clinics', icon: Building2, roles: ['SUPER_ADMIN'] },
-  { to: '/patients', label: 'Patients', icon: Users, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST'], perm: 'patients.view', requiresClinic: true },
-  { to: '/consultations', label: 'Consultations', icon: Stethoscope, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST'], perm: 'consultations.view', requiresClinic: true },
-  { to: '/visit-history', label: 'Visit History', icon: ClipboardList, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST'], perm: 'visit-history.view', requiresClinic: true },
-  { to: '/payments', label: 'Payments', icon: CreditCard, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST'], perm: 'payments.view', requiresClinic: true },
-  { to: '/machines', label: 'Machines', icon: Dumbbell, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST'], perm: 'machines.view' },
+  { to: '/patients', label: 'Patients', icon: Users, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER'], perm: 'patients.view', requiresClinic: true },
+  { to: '/consultations', label: 'Consultations', icon: Stethoscope, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER'], perm: 'consultations.view', requiresClinic: true },
+  { to: '/visit-history', label: 'Visit History', icon: ClipboardList, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER'], perm: 'visit-history.view', requiresClinic: true },
+  { to: '/payments', label: 'Payments', icon: CreditCard, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER'], perm: 'payments.view', requiresClinic: true },
+  { to: '/machines', label: 'Machines', icon: Dumbbell, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER'], perm: 'machines.view' },
   { to: '/machine-complaints', label: 'Machine Complaints', icon: Wrench, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN'], perm: 'machine-complaints.view' },
   { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN'], perm: 'reports.view', requiresClinic: true },
   { to: '/permissions', label: 'Roles & Permissions', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
-  { to: '/settings', label: 'Settings', icon: Settings, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'HR'] },
+  { to: '/settings', label: 'Settings', icon: Settings, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER', 'HR'] },
 ];
 
-// HR module — Super Admin & the dedicated HR role own the whole thing
-// (staff accounts + operational records). Clinic Admins have no HR access.
-const HR_ROLES: Role[] = ['SUPER_ADMIN', 'HR'];
+// HR module — Super Admin, the dedicated HR role, and Clinic Admin all have
+// full access (staff accounts + operational records).
+const HR_ROLES: Role[] = ['SUPER_ADMIN', 'HR', 'CLINIC_ADMIN'];
 const HR_NAV: NavItem[] = [
   { to: '/hr/staff', label: 'Staff', icon: Users, roles: HR_ROLES, perm: 'hr.staff.view' },
   { to: '/hr/employees', label: 'Employment', icon: UserCog, roles: HR_ROLES, perm: 'hr.employees.view' },

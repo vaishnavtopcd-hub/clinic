@@ -1,4 +1,9 @@
-export type Role = 'SUPER_ADMIN' | 'CLINIC_ADMIN' | 'PHYSIOTHERAPIST' | 'HR';
+export type Role =
+  | 'SUPER_ADMIN'
+  | 'CLINIC_ADMIN'
+  | 'PHYSIOTHERAPIST'
+  | 'FRONTEND_OFFICER'
+  | 'HR';
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type PaymentMethod = 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER';
 export type PaymentStatus = 'PAID' | 'DUE';
@@ -22,6 +27,7 @@ export const ROLES: Role[] = [
   'SUPER_ADMIN',
   'CLINIC_ADMIN',
   'PHYSIOTHERAPIST',
+  'FRONTEND_OFFICER',
   'HR',
 ];
 
@@ -29,6 +35,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: 'Super Admin',
   CLINIC_ADMIN: 'Clinic Admin',
   PHYSIOTHERAPIST: 'Physiotherapist',
+  FRONTEND_OFFICER: 'Frontend Officer',
   HR: 'HR',
 };
 
@@ -200,6 +207,16 @@ export interface PaymentDashboard {
   totalRevenue: number;
   totalDue: number;
   pendingPayments: number;
+}
+
+export interface DashboardTrendPoint {
+  /** YYYY-MM */
+  month: string;
+  /** Short month label, e.g. "Jan" */
+  label: string;
+  revenue: number;
+  patients: number;
+  consultations: number;
 }
 
 export interface PatientPaymentSummary {

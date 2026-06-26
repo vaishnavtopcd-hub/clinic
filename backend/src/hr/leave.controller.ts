@@ -17,7 +17,7 @@ import { RequirePermissions } from '../permissions/permissions.guard';
 
 @ApiTags('hr/leave')
 @ApiBearerAuth()
-@Roles(Role.SUPER_ADMIN, Role.HR)
+@Roles(Role.SUPER_ADMIN, Role.HR, Role.CLINIC_ADMIN)
 @Controller('hr/leave')
 export class LeaveController {
   constructor(private readonly leave: LeaveService) {}

@@ -116,6 +116,7 @@ export const HR_PERMISSION_KEYS: string[] = ALL_PERMISSION_KEYS.filter((k) =>
 export const CONFIGURABLE_ROLES: Role[] = [
   Role.CLINIC_ADMIN,
   Role.PHYSIOTHERAPIST,
+  Role.FRONTEND_OFFICER,
   Role.HR,
 ];
 
@@ -123,18 +124,32 @@ export const CONFIGURABLE_ROLES: Role[] = [
  * Fallback permissions used when no row exists in the DB yet.
  *
  * Role hierarchy:
- * - Clinic Admin runs the clinic's operations only (patients, consultations,
- *   payments, machines, reports). The entire HR module — including staff-account
- *   management — belongs to the HR role.
+ * - Clinic Admin runs the clinic: every operational permission plus the full
+ *   HR module (staff accounts, employment, attendance, leave, payroll, reports).
  * - HR owns the whole HR module: staff accounts, employment, attendance, leave,
  *   payroll and HR reports (scoped to their own clinic).
  */
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
-  // Clinic admin gets every operational permission, but NOT the HR module.
-  [Role.CLINIC_ADMIN]: ALL_PERMISSION_KEYS.filter((k) => !k.startsWith('hr.')),
+  // Clinic admin gets every permission, including the full HR module.
+  [Role.CLINIC_ADMIN]: [...ALL_PERMISSION_KEYS],
   // HR role owns the entire HR module (staff accounts + operational records).
   [Role.HR]: [...HR_PERMISSION_KEYS],
   [Role.PHYSIOTHERAPIST]: [
+    'dashboard.view',
+    'patients.view',
+    'patients.create',
+    'patients.edit',
+    'consultations.view',
+    'consultations.create',
+    'consultations.edit',
+    'visit-history.view',
+    'payments.view',
+    'payments.update',
+    'machines.view',
+  ],
+  // Front-desk officer: runs reception — registers patients, books visits and
+  // takes payments. No HR, no reports, no delete/manage rights.
+  [Role.FRONTEND_OFFICER]: [
     'dashboard.view',
     'patients.view',
     'patients.create',

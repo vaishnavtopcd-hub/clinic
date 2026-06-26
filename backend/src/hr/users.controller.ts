@@ -15,11 +15,10 @@ import { Roles, CurrentUser, AuthUser } from '../common/decorators';
 import { Role } from '../common/enums';
 import { RequirePermissions } from '../permissions/permissions.guard';
 
-// Staff-account management belongs to the HR role (and Super Admin).
-// Clinic Admins run clinic operations, not user/role administration.
+// Staff-account management belongs to HR, Clinic Admin and Super Admin.
 @ApiTags('hr/staff')
 @ApiBearerAuth()
-@Roles(Role.SUPER_ADMIN, Role.HR)
+@Roles(Role.SUPER_ADMIN, Role.HR, Role.CLINIC_ADMIN)
 @Controller('hr/staff')
 export class HrUsersController {
   constructor(private readonly users: HrUsersService) {}

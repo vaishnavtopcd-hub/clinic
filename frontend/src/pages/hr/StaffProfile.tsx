@@ -23,6 +23,7 @@ const ROLE_BADGE: Record<Role, string> = {
   SUPER_ADMIN: 'bg-primary/15 text-primary',
   CLINIC_ADMIN: 'bg-info/15 text-info',
   PHYSIOTHERAPIST: 'bg-success/15 text-success',
+  FRONTEND_OFFICER: 'bg-warning/15 text-warning',
   HR: 'bg-accent/15 text-accent',
 };
 

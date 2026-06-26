@@ -1,7 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import type { DashboardSummary, PaymentDashboard } from '../lib/types';
+import type {
+  DashboardSummary,
+  PaymentDashboard,
+  DashboardTrendPoint,
+} from '../lib/types';
 import {
   PageHeader,
   StatCard,
@@ -10,6 +14,7 @@ import {
   PaymentBadge,
   EmptyState,
 } from '../components/ui';
+import { RevenuePatientsChart } from '../components/RevenuePatientsChart';
 import { currency, formatDate, formatDateTime } from '../lib/format';
 
 export default function Dashboard() {
@@ -23,10 +28,16 @@ export default function Dashboard() {
     queryFn: async () =>
       (await api.get<PaymentDashboard>('/dashboard/payments')).data,
   });
+  const trends = useQuery({
+    queryKey: ['dashboard-trends'],
+    queryFn: async () =>
+      (await api.get<DashboardTrendPoint[]>('/dashboard/trends')).data,
+  });
 
   if (summary.isLoading) return <Spinner />;
   const s = summary.data;
   const p = payments.data;
+  const t = trends.data;
 
   return (
     <div>
@@ -59,6 +70,20 @@ export default function Dashboard() {
           hint={`${currency(p?.totalDue ?? 0)} due`}
         />
       </div>
+
+      <Card className="mt-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-semibold text-foreground">Revenue &amp; Patients</h3>
+          <span className="text-xs text-muted-foreground">Last 6 months</span>
+        </div>
+        {trends.isLoading ? (
+          <Spinner />
+        ) : t && t.length ? (
+          <RevenuePatientsChart data={t} />
+        ) : (
+          <EmptyState message="No trend data yet" />
+        )}
+      </Card>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card>

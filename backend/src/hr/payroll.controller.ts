@@ -17,7 +17,7 @@ import { RequirePermissions } from '../permissions/permissions.guard';
 
 @ApiTags('hr/payroll')
 @ApiBearerAuth()
-@Roles(Role.SUPER_ADMIN, Role.HR)
+@Roles(Role.SUPER_ADMIN, Role.HR, Role.CLINIC_ADMIN)
 @Controller('hr/payroll')
 export class PayrollController {
   constructor(private readonly payroll: PayrollService) {}

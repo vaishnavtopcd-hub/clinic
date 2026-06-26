@@ -41,6 +41,7 @@ const ROLE_BADGE: Record<Role, string> = {
   SUPER_ADMIN: 'bg-primary/15 text-primary',
   CLINIC_ADMIN: 'bg-info/15 text-info',
   PHYSIOTHERAPIST: 'bg-success/15 text-success',
+  FRONTEND_OFFICER: 'bg-warning/15 text-warning',
   HR: 'bg-accent/15 text-accent',
 };
 
@@ -98,11 +99,12 @@ export default function Staff() {
   const { user: me, can } = useAuth();
   const isSuper = me?.role === 'SUPER_ADMIN';
   const canManage = can('hr.staff.manage');
-  // Super admin may assign any role; a clinic admin may only create HR or
-  // Physiotherapist staff (never another admin). Mirrors the backend guard.
+  // Super admin may assign any role; a clinic admin may only create HR,
+  // Physiotherapist or Frontend Officer staff (never another admin).
+  // Mirrors the backend guard.
   const availableRoles: Role[] = isSuper
     ? ROLES
-    : (['HR', 'PHYSIOTHERAPIST'] as Role[]);
+    : (['HR', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER'] as Role[]);
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');

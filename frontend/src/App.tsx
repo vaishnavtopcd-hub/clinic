@@ -63,7 +63,7 @@ export default function App() {
         <Route
           path="/patients"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER']}>
               <Patients />
             </ProtectedRoute>
           }
@@ -71,7 +71,7 @@ export default function App() {
         <Route
           path="/patients/:id"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER']}>
               <PatientProfile />
             </ProtectedRoute>
           }
@@ -79,7 +79,7 @@ export default function App() {
         <Route
           path="/consultations"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER']}>
               <Consultations />
             </ProtectedRoute>
           }
@@ -87,7 +87,7 @@ export default function App() {
         <Route
           path="/consultations/new"
           element={
-            <ProtectedRoute roles={['CLINIC_ADMIN', 'PHYSIOTHERAPIST']}>
+            <ProtectedRoute roles={['CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER']}>
               <ConsultationForm />
             </ProtectedRoute>
           }
@@ -95,7 +95,7 @@ export default function App() {
         <Route
           path="/consultations/:id"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER']}>
               <ConsultationDetail />
             </ProtectedRoute>
           }
@@ -103,7 +103,7 @@ export default function App() {
         <Route
           path="/visit-history"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER']}>
               <VisitHistory />
             </ProtectedRoute>
           }
@@ -111,7 +111,7 @@ export default function App() {
         <Route
           path="/payments"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER']}>
               <Payments />
             </ProtectedRoute>
           }
@@ -120,7 +120,7 @@ export default function App() {
           path="/machines"
           element={
             <ProtectedRoute
-              roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST']}
+              roles={['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER']}
             >
               <Machines />
             </ProtectedRoute>
@@ -151,11 +151,11 @@ export default function App() {
           }
         />
 
-        {/* HR module — Super Admin & HR (staff accounts + operational records). */}
+        {/* HR module — Super Admin, HR & Clinic Admin (staff accounts + records). */}
         <Route
           path="/hr/staff"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'HR']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'HR', 'CLINIC_ADMIN']}>
               <Staff />
             </ProtectedRoute>
           }
@@ -163,7 +163,7 @@ export default function App() {
         <Route
           path="/hr/staff/:id"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'HR']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'HR', 'CLINIC_ADMIN']}>
               <StaffProfile />
             </ProtectedRoute>
           }
@@ -171,7 +171,7 @@ export default function App() {
         <Route
           path="/hr/employees"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'HR']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'HR', 'CLINIC_ADMIN']}>
               <Employees />
             </ProtectedRoute>
           }
@@ -179,7 +179,7 @@ export default function App() {
         <Route
           path="/hr/attendance"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'HR']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'HR', 'CLINIC_ADMIN']}>
               <Attendance />
             </ProtectedRoute>
           }
@@ -187,7 +187,7 @@ export default function App() {
         <Route
           path="/hr/leave"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'HR']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'HR', 'CLINIC_ADMIN']}>
               <Leave />
             </ProtectedRoute>
           }
@@ -195,7 +195,7 @@ export default function App() {
         <Route
           path="/hr/payroll"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'HR']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'HR', 'CLINIC_ADMIN']}>
               <Payroll />
             </ProtectedRoute>
           }
@@ -203,7 +203,7 @@ export default function App() {
         <Route
           path="/hr/reports"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'HR']}>
+            <ProtectedRoute roles={['SUPER_ADMIN', 'HR', 'CLINIC_ADMIN']}>
               <HrReports />
             </ProtectedRoute>
           }

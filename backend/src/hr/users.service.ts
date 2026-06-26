@@ -36,17 +36,25 @@ export class HrUsersService {
     return actor.role === Role.SUPER_ADMIN;
   }
 
+  /** Staff roles a Clinic Admin is allowed to create / assign. */
+  private static readonly CLINIC_ADMIN_ASSIGNABLE = [
+    Role.HR,
+    Role.PHYSIOTHERAPIST,
+    Role.FRONTEND_OFFICER,
+  ];
+
   /**
    * Who may be granted which role:
    * - Super Admin may assign any role.
-   * - A Clinic Admin may only create HR or Physiotherapist staff. They can
-   *   never mint another Clinic Admin or a Super Admin (privilege escalation).
+   * - A Clinic Admin may only create HR, Physiotherapist or Frontend Officer
+   *   staff. They can never mint another Clinic Admin or a Super Admin
+   *   (privilege escalation).
    */
   private assertCanAssignRole(actor: AuthUser, role: Role) {
     if (this.isSuper(actor)) return;
-    if (role !== Role.HR && role !== Role.PHYSIOTHERAPIST) {
+    if (!HrUsersService.CLINIC_ADMIN_ASSIGNABLE.includes(role)) {
       throw new ForbiddenException(
-        'You may only create HR or Physiotherapist staff',
+        'You may only create HR, Physiotherapist or Frontend Officer staff',
       );
     }
   }

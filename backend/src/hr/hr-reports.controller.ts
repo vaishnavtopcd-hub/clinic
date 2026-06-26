@@ -8,7 +8,7 @@ import { RequirePermissions } from '../permissions/permissions.guard';
 
 @ApiTags('hr/reports')
 @ApiBearerAuth()
-@Roles(Role.SUPER_ADMIN, Role.HR)
+@Roles(Role.SUPER_ADMIN, Role.HR, Role.CLINIC_ADMIN)
 @RequirePermissions('hr.reports.view')
 @Controller('hr/reports')
 export class HrReportsController {
