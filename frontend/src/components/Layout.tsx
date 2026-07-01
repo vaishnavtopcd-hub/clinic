@@ -244,7 +244,9 @@ export default function Layout() {
             >
               ☰
             </button>
-            {isSuper ? (
+            {/* Super admin keeps the clinic selector (a control); the clinic
+                name itself is shown only in the sidebar. */}
+            {isSuper && (
               <label className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="hidden sm:inline">Clinic:</span>
                 <select
@@ -260,10 +262,6 @@ export default function Layout() {
                   ))}
                 </select>
               </label>
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                {user?.clinic?.name ?? ''}
-              </div>
             )}
           </div>
           <div className="flex items-center gap-3">
