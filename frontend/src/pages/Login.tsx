@@ -27,11 +27,6 @@ export default function Login() {
     }
   };
 
-  const quick = (e: string) => {
-    setEmail(e);
-    setPassword('Passw0rd!');
-  };
-
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-accent-500 p-4">
       {/* soft decorative glows */}
@@ -79,23 +74,6 @@ export default function Login() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
-
-        <div className="mt-6 border-t border-border pt-4">
-          <p className="mb-2 text-center text-xs text-muted-foreground">
-            Demo accounts (password: Passw0rd!)
-          </p>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <button onClick={() => quick('super@admin.com')} className="btn-secondary px-2 py-1">
-              Super
-            </button>
-            <button onClick={() => quick('admin@sunrise.com')} className="btn-secondary px-2 py-1">
-              Admin
-            </button>
-            <button onClick={() => quick('physio@sunrise.com')} className="btn-secondary px-2 py-1">
-              Physio
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
