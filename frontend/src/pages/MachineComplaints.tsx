@@ -23,7 +23,7 @@ import {
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { ExportMenu } from '../components/ExportMenu';
 import type { ExportColumn } from '../lib/export';
-import { formatDate } from '../lib/format';
+import { formatDate, todayISO } from '../lib/format';
 
 const STATUS_BADGE: Record<ComplaintStatus, string> = {
   OPEN: 'bg-error/15 text-error',
@@ -64,8 +64,8 @@ export default function MachineComplaints() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<ComplaintStatus | ''>('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ ...emptyCreate });

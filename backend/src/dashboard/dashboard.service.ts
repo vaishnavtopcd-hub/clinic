@@ -17,8 +17,10 @@ export class DashboardService {
     @InjectRepository(Payment) private readonly payments: Repository<Payment>,
   ) {}
 
-  async summary(clinicId: string) {
-    const { start, end } = this.todayRange();
+  async summary(clinicId: string, dateFrom?: string, dateTo?: string) {
+    // Period metrics (patients, consultations, revenue) honour the selected
+    // range; cumulative metrics (totals, active staff, outstanding due) do not.
+    const { start, end } = this.range(dateFrom, dateTo);
 
     const [
       totalPatients,
@@ -213,6 +215,18 @@ export class DashboardService {
       59,
       999,
     );
+    return { start, end };
+  }
+
+  /**
+   * Resolve optional YYYY-MM-DD bounds to a start/end range (local time).
+   * Falls back to today when neither bound is given, so callers that omit the
+   * range keep the original behaviour.
+   */
+  private range(dateFrom?: string, dateTo?: string) {
+    if (!dateFrom && !dateTo) return this.todayRange();
+    const start = dateFrom ? new Date(`${dateFrom}T00:00:00`) : new Date(0);
+    const end = dateTo ? new Date(`${dateTo}T23:59:59.999`) : new Date();
     return { start, end };
   }
 }

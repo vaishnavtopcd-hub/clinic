@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, apiError } from '../../lib/api';
+import { api, apiError, fetchAllPaginated } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
 import type {
   Paginated,
@@ -20,6 +20,8 @@ import {
   ErrorText,
 } from '../../components/ui';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ExportMenu } from '../../components/ExportMenu';
+import type { ExportColumn } from '../../lib/export';
 import { formatDate, todayISO } from '../../lib/format';
 
 const STATUS_LABELS: Record<AttendanceStatus, string> = {
@@ -34,6 +36,15 @@ const STATUS_VALUES: AttendanceStatus[] = [
   'ABSENT',
   'HALF_DAY',
   'ON_LEAVE',
+];
+
+const EXPORT_COLUMNS: ExportColumn<Attendance>[] = [
+  { header: 'Date', value: (a) => formatDate(a.date) },
+  { header: 'Employee', value: (a) => a.employee?.fullName ?? '' },
+  { header: 'Status', value: (a) => STATUS_LABELS[a.status] },
+  { header: 'Check In', value: (a) => a.checkIn ?? '' },
+  { header: 'Check Out', value: (a) => a.checkOut ?? '' },
+  { header: 'Notes', value: (a) => a.notes ?? '' },
 ];
 
 function AttendanceBadge({ status }: { status: AttendanceStatus }) {
@@ -63,8 +74,8 @@ export default function AttendancePage() {
   const [empFilter, setEmpFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<AttendanceStatus | ''>('');
   const [clinicId, setClinicId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
 
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Attendance | null>(null);
@@ -196,11 +207,28 @@ export default function AttendancePage() {
         title="Attendance"
         subtitle="Daily staff attendance"
         action={
-          canManage && (
-            <button className="btn-primary" onClick={openCreate}>
-              + Mark Attendance
-            </button>
-          )
+          <div className="flex gap-2">
+            <ExportMenu
+              filename="attendance"
+              title="Attendance"
+              columns={EXPORT_COLUMNS}
+              fetchRows={() =>
+                fetchAllPaginated<Attendance>('/hr/attendance', {
+                  date: dateFilter || undefined,
+                  employeeId: empFilter || undefined,
+                  status: statusFilter || undefined,
+                  clinicId: clinicId || undefined,
+                  dateFrom: dateFrom || undefined,
+                  dateTo: dateTo || undefined,
+                })
+              }
+            />
+            {canManage && (
+              <button className="btn-primary" onClick={openCreate}>
+                + Mark Attendance
+              </button>
+            )}
+          </div>
         }
       />
 

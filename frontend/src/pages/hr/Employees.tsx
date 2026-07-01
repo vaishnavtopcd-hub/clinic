@@ -22,7 +22,7 @@ import {
   StatusPill,
 } from '../../components/ui';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
-import { currency, formatDate } from '../../lib/format';
+import { currency, formatDate, todayISO } from '../../lib/format';
 
 const TYPE_LABELS: Record<EmploymentType, string> = {
   FULL_TIME: 'Full Time',
@@ -40,6 +40,7 @@ const empty = {
   phone: '',
   email: '',
   address: '',
+  emergencyContact: '',
   clinicId: '',
 };
 
@@ -53,8 +54,8 @@ export default function Employment() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<EmployeeStatus | ''>('');
   const [clinicId, setClinicId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [form, setForm] = useState({ ...empty });
@@ -111,6 +112,7 @@ export default function Employment() {
         phone: form.phone || undefined,
         email: form.email || undefined,
         address: form.address || undefined,
+        emergencyContact: form.emergencyContact || undefined,
       };
       if (editing) return api.patch(`/hr/employees/${editing.id}`, common);
       return api.post('/hr/employees', {
@@ -149,6 +151,7 @@ export default function Employment() {
       phone: e.phone ?? '',
       email: e.email ?? '',
       address: e.address ?? '',
+      emergencyContact: e.emergencyContact ?? '',
       clinicId: e.clinicId,
     });
     setError('');
@@ -440,6 +443,14 @@ export default function Employment() {
               className="input"
               value={form.email}
               onChange={(e) => set('email', e.target.value)}
+            />
+          </Field>
+          <Field label="Emergency Contact">
+            <input
+              className="input"
+              placeholder="Name / phone"
+              value={form.emergencyContact}
+              onChange={(e) => set('emergencyContact', e.target.value)}
             />
           </Field>
           <div className="sm:col-span-2">

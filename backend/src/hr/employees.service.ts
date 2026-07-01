@@ -128,6 +128,7 @@ export class EmployeesService {
       baseSalary: dto.baseSalary ?? 0,
       status: dto.status,
       address: dto.address,
+      emergencyContact: dto.emergencyContact,
     });
     return this.employees.save(employee);
   }

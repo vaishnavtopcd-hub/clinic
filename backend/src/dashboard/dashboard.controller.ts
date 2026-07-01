@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 import { Roles, CurrentUser, AuthUser } from '../common/decorators';
@@ -14,8 +14,12 @@ export class DashboardController {
 
   @RequirePermissions('dashboard.view')
   @Get('summary')
-  summary(@CurrentUser() user: AuthUser) {
-    return this.dashboard.summary(user.clinicId!);
+  summary(
+    @CurrentUser() user: AuthUser,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.dashboard.summary(user.clinicId!, dateFrom, dateTo);
   }
 
   @RequirePermissions('payments.view')

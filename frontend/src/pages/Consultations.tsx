@@ -12,7 +12,7 @@ import {
   Pagination,
   PaymentBadge,
 } from '../components/ui';
-import { currency, formatDateTime } from '../lib/format';
+import { currency, formatDateTime, todayISO } from '../lib/format';
 import { ExportMenu } from '../components/ExportMenu';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import type { ExportColumn } from '../lib/export';
@@ -33,8 +33,8 @@ export default function Consultations() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<PaymentStatus | ''>('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
 
   const list = useQuery({
     queryKey: ['consultations', page, search, status, dateFrom, dateTo],

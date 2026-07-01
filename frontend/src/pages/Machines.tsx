@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, apiError } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
-import type { Paginated, Machine } from '../lib/types';
+import type { Paginated, Machine, MachineUsageSummary } from '../lib/types';
 import {
   PageHeader,
   Card,
+  StatCard,
   Spinner,
   EmptyState,
   Pagination,
@@ -15,6 +16,7 @@ import {
   StatusPill,
 } from '../components/ui';
 import { DateRangeFilter } from '../components/DateRangeFilter';
+import { todayISO, formatDate } from '../lib/format';
 
 export default function Machines() {
   const { user, can } = useAuth();
@@ -24,8 +26,8 @@ export default function Machines() {
   const [editing, setEditing] = useState<Machine | null>(null);
   const [form, setForm] = useState({ name: '', description: '', isActive: true });
   const [error, setError] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
 
   const isSuper = user?.role === 'SUPER_ADMIN';
   // Super admin manages global machines; others need the machines.manage permission.
@@ -68,6 +70,26 @@ export default function Machines() {
       api.patch(`/machines/${m.id}`, { isActive: !m.isActive }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['machines'] }),
   });
+
+  // --- Usage summary ---
+  const [usageFor, setUsageFor] = useState<Machine | null>(null);
+  const [uFrom, setUFrom] = useState('');
+  const [uTo, setUTo] = useState('');
+  const usage = useQuery({
+    queryKey: ['machine-usage', usageFor?.id, uFrom, uTo],
+    enabled: !!usageFor,
+    queryFn: async () =>
+      (
+        await api.get<MachineUsageSummary>(`/machines/${usageFor!.id}/usage`, {
+          params: { dateFrom: uFrom || undefined, dateTo: uTo || undefined },
+        })
+      ).data,
+  });
+  const openUsage = (m: Machine) => {
+    setUFrom('');
+    setUTo('');
+    setUsageFor(m);
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -130,7 +152,7 @@ export default function Machines() {
                   <th className="px-4 py-3">Description</th>
                   <th className="px-4 py-3">Scope</th>
                   <th className="px-4 py-3">Status</th>
-                  {canManage && <th className="px-4 py-3 text-right">Actions</th>}
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -150,28 +172,30 @@ export default function Machines() {
                     <td className="px-4 py-3">
                       <StatusPill active={m.isActive} />
                     </td>
-                    {canManage && (
-                      <td className="px-4 py-3 text-right">
-                        {canManageRow(m) ? (
-                          <>
-                            <button
-                              className="text-primary hover:underline"
-                              onClick={() => openEdit(m)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="ml-3 text-muted-foreground hover:underline"
-                              onClick={() => toggle.mutate(m)}
-                            >
-                              {m.isActive ? 'Disable' : 'Enable'}
-                            </button>
-                          </>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">read-only</span>
-                        )}
-                      </td>
-                    )}
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <button
+                        className="text-primary hover:underline"
+                        onClick={() => openUsage(m)}
+                      >
+                        Usage
+                      </button>
+                      {canManage && canManageRow(m) && (
+                        <>
+                          <button
+                            className="ml-3 text-primary hover:underline"
+                            onClick={() => openEdit(m)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="ml-3 text-muted-foreground hover:underline"
+                            onClick={() => toggle.mutate(m)}
+                          >
+                            {m.isActive ? 'Disable' : 'Enable'}
+                          </button>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -240,6 +264,93 @@ export default function Machines() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={!!usageFor}
+        onClose={() => setUsageFor(null)}
+        title={`Usage — ${usageFor?.name ?? ''}`}
+        wide
+      >
+        <div className="mb-4">
+          <span className="mb-1 block text-xs font-medium text-muted-foreground">
+            Filter by date (default: all time)
+          </span>
+          <DateRangeFilter
+            from={uFrom}
+            to={uTo}
+            onChange={({ from, to }) => {
+              setUFrom(from);
+              setUTo(to);
+            }}
+          />
+        </div>
+
+        {usage.isLoading ? (
+          <Spinner />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <StatCard
+                label="Total Hours"
+                value={`${usage.data?.totalHours ?? 0} h`}
+                hint={`${usage.data?.totalMinutes ?? 0} min`}
+                accent="text-primary"
+              />
+              <StatCard label="Sessions" value={usage.data?.totalSessions ?? 0} />
+              <StatCard
+                label="Avg / Session"
+                value={`${usage.data?.avgMinutes ?? 0} min`}
+              />
+              <StatCard
+                label="Last Used"
+                value={
+                  usage.data?.lastUsedAt
+                    ? formatDate(usage.data.lastUsedAt)
+                    : '—'
+                }
+              />
+            </div>
+
+            <h4 className="mb-2 mt-6 font-semibold text-foreground">
+              Recent Usage
+            </h4>
+            {usage.data?.recent.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-xs uppercase text-muted-foreground">
+                    <tr>
+                      <th className="py-2">Date</th>
+                      <th className="py-2">Patient</th>
+                      <th className="py-2">Duration</th>
+                      <th className="py-2">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {usage.data.recent.map((r) => (
+                      <tr key={r.id}>
+                        <td className="py-2 text-muted-foreground">
+                          {formatDate(r.date)}
+                        </td>
+                        <td className="py-2 font-medium text-foreground">
+                          {r.patientName || '—'}
+                        </td>
+                        <td className="py-2 text-muted-foreground">
+                          {r.durationMinutes} min
+                        </td>
+                        <td className="py-2 text-muted-foreground">
+                          {r.notes || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyState message="No usage recorded for this range." />
+            )}
+          </>
+        )}
       </Modal>
     </div>
   );

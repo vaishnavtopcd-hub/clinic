@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, In, IsNull, Repository } from 'typeorm';
 import { Machine } from './machine.entity';
 import { MachineComplaint } from '../machine-complaints/machine-complaint.entity';
+import { MachineUsage } from '../consultations/entities/machine-usage.entity';
 import { CreateMachineDto, UpdateMachineDto } from './dto';
 import { AuthUser } from '../common/decorators';
 import { ComplaintStatus, Role } from '../common/enums';
@@ -19,6 +20,8 @@ export class MachinesService {
     private readonly machines: Repository<Machine>,
     @InjectRepository(MachineComplaint)
     private readonly complaints: Repository<MachineComplaint>,
+    @InjectRepository(MachineUsage)
+    private readonly usages: Repository<MachineUsage>,
   ) {}
 
   /**
@@ -110,6 +113,72 @@ export class MachinesService {
     const machine = await this.findOne(actor, id);
     await this.machines.softRemove(machine);
     return { success: true };
+  }
+
+  /**
+   * Usage summary for a machine: total time, sessions, average and recent runs.
+   * Scoped to the actor's clinic (a super admin with no clinic selected sees the
+   * global total across clinics). Any user with machines.view may read it.
+   */
+  async usageSummary(
+    actor: AuthUser,
+    machineId: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const machine = await this.machines.findOne({ where: { id: machineId } });
+    if (!machine) throw new NotFoundException('Machine not found');
+
+    const scoped = () => {
+      const qb = this.usages
+        .createQueryBuilder('u')
+        .innerJoin('u.consultation', 'c')
+        .where('u.machineId = :machineId', { machineId });
+      if (actor.clinicId) qb.andWhere('c.clinicId = :cid', { cid: actor.clinicId });
+      if (dateFrom) qb.andWhere('c.consultationDate >= :df', { df: dateFrom });
+      if (dateTo)
+        qb.andWhere('c.consultationDate <= :dt', { dt: `${dateTo} 23:59:59` });
+      return qb;
+    };
+
+    const totals = await scoped()
+      .select('COALESCE(SUM(u.durationMinutes), 0)', 'minutes')
+      .addSelect('COUNT(*)', 'sessions')
+      .addSelect('MAX(c.consultationDate)', 'lastUsedAt')
+      .getRawOne<{ minutes: string; sessions: string; lastUsedAt: Date | null }>();
+
+    const recentRows = await scoped()
+      .leftJoin('c.patient', 'p')
+      .select('u.id', 'id')
+      .addSelect('c.id', 'consultationId')
+      .addSelect('c.consultationDate', 'date')
+      .addSelect('p.fullName', 'patientName')
+      .addSelect('u.durationMinutes', 'durationMinutes')
+      .addSelect('u.notes', 'notes')
+      .orderBy('c.consultationDate', 'DESC')
+      .limit(10)
+      .getRawMany();
+
+    const totalMinutes = Number(totals?.minutes ?? 0);
+    const totalSessions = Number(totals?.sessions ?? 0);
+
+    return {
+      machineId,
+      machineName: machine.name,
+      totalMinutes,
+      totalHours: Math.round((totalMinutes / 60) * 10) / 10,
+      totalSessions,
+      avgMinutes: totalSessions ? Math.round(totalMinutes / totalSessions) : 0,
+      lastUsedAt: totals?.lastUsedAt ?? null,
+      recent: recentRows.map((r) => ({
+        id: r.id,
+        consultationId: r.consultationId,
+        date: r.date,
+        patientName: r.patientName ?? null,
+        durationMinutes: Number(r.durationMinutes),
+        notes: r.notes ?? null,
+      })),
+    };
   }
 
   /** A clinic admin may only manage their own clinic's machines. */

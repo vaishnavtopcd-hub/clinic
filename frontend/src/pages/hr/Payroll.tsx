@@ -19,7 +19,7 @@ import {
   Field,
   ErrorText,
 } from '../../components/ui';
-import { currency } from '../../lib/format';
+import { currency, todayISO } from '../../lib/format';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 
 function PayrollBadge({ status }: { status: PayrollStatus }) {
@@ -47,8 +47,8 @@ export default function Payroll() {
   const [statusFilter, setStatusFilter] = useState<PayrollStatus | ''>('');
   const [empFilter, setEmpFilter] = useState('');
   const [clinicId, setClinicId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
 
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Payroll | null>(null);

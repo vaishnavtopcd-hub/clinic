@@ -9,7 +9,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User } from '../users/user.entity';
 import { Clinic } from '../clinics/clinic.entity';
-import { LoginDto, ChangePasswordDto } from './dto';
+import { LoginDto, ChangePasswordDto, UpdateProfileDto } from './dto';
 import { AuthUser } from '../common/decorators';
 import { PermissionsService } from '../permissions/permissions.service';
 
@@ -63,6 +63,31 @@ export class AuthService {
     return this.serialize(user, permissions);
   }
 
+  /** Update the caller's own editable profile fields. */
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.users.findOne({
+      where: { id: userId },
+      relations: ['clinic'],
+    });
+    if (!user) throw new UnauthorizedException();
+
+    const editable = [
+      'name',
+      'phone',
+      'department',
+      'address',
+      'specialization',
+      'photoUrl',
+    ] as const;
+    for (const field of editable) {
+      if (dto[field] !== undefined) user[field] = dto[field];
+    }
+    await this.users.save(user);
+
+    const permissions = await this.permissions.resolveForUser(user);
+    return this.serialize(user, permissions);
+  }
+
   async changePassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.users
       .createQueryBuilder('u')
@@ -100,6 +125,7 @@ export class AuthService {
       username: user.username,
       phone: user.phone,
       department: user.department,
+      address: user.address,
       photoUrl: user.photoUrl,
       role: user.role,
       clinicId: user.clinicId,

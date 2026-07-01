@@ -63,6 +63,10 @@ export class CreateEmployeeDto {
   address?: string;
 
   @IsOptional()
+  @IsString()
+  emergencyContact?: string;
+
+  @IsOptional()
   @IsUUID()
   clinicId?: string;
 }
@@ -101,6 +105,10 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsString()
   address?: string;
+
+  @IsOptional()
+  @IsString()
+  emergencyContact?: string;
 }
 
 export class ListEmployeesQuery extends PaginationQuery {

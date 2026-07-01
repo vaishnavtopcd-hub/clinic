@@ -17,7 +17,48 @@ import {
   Spinner,
   EmptyState,
 } from '../../components/ui';
+import { ExportMenu } from '../../components/ExportMenu';
+import type { ExportColumn } from '../../lib/export';
 import { currency, todayISO } from '../../lib/format';
+
+interface HrReportRow {
+  section: string;
+  item: string;
+  value: string | number;
+}
+
+const HR_EXPORT_COLUMNS: ExportColumn<HrReportRow>[] = [
+  { header: 'Section', value: (r) => r.section },
+  { header: 'Item', value: (r) => r.item },
+  { header: 'Value', value: (r) => r.value },
+];
+
+/** Flatten the HR summary into export rows (section / item / value). */
+function flattenHrSummary(d: HrSummary): HrReportRow[] {
+  const rows: HrReportRow[] = [
+    { section: 'Staff', item: 'Total', value: d.employees.total },
+    { section: 'Staff', item: 'Active', value: d.employees.active },
+    { section: 'Staff', item: 'Inactive', value: d.employees.inactive },
+  ];
+  d.employees.byType.forEach((t) =>
+    rows.push({ section: 'Staff by Type', item: t.type, value: t.count }),
+  );
+  d.attendance.byStatus.forEach((a) =>
+    rows.push({ section: 'Attendance', item: a.status, value: a.count }),
+  );
+  rows.push({ section: 'Attendance', item: 'Total', value: d.attendance.total });
+  d.leave.byStatus.forEach((l) =>
+    rows.push({ section: 'Leave', item: l.status, value: l.count }),
+  );
+  rows.push(
+    { section: 'Payroll', item: 'Paid (count)', value: d.payroll.paidCount },
+    { section: 'Payroll', item: 'Paid (amount)', value: currency(d.payroll.paidAmount) },
+    { section: 'Payroll', item: 'Unpaid (count)', value: d.payroll.unpaidCount },
+    { section: 'Payroll', item: 'Unpaid (amount)', value: currency(d.payroll.unpaidAmount) },
+    { section: 'Payroll', item: 'Total (amount)', value: currency(d.payroll.totalAmount) },
+  );
+  return rows;
+}
 
 const ATTENDANCE_LABELS: Record<AttendanceStatus, string> = {
   PRESENT: 'Present',
@@ -78,6 +119,16 @@ export default function HrReports() {
       <PageHeader
         title="HR Reports"
         subtitle="Workforce, attendance, leave and payroll overview"
+        action={
+          summary.data && (
+            <ExportMenu
+              filename="hr-report"
+              title="HR Report"
+              columns={HR_EXPORT_COLUMNS}
+              fetchRows={() => flattenHrSummary(summary.data!)}
+            />
+          )
+        }
       />
 
       <Card className="mb-5">

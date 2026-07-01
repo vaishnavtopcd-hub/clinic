@@ -35,6 +35,10 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   department?: string;
 
+  /** Optional postal/contact address. */
+  @Column({ type: 'text', nullable: true })
+  address?: string;
+
   /** Optional profile photo stored as a base64 data URL. */
   @Column({ type: 'text', nullable: true })
   photoUrl?: string;

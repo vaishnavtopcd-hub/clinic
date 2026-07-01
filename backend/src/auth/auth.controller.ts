@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, ChangePasswordDto } from './dto';
+import { LoginDto, ChangePasswordDto, UpdateProfileDto } from './dto';
 import { Public, CurrentUser, AuthUser } from '../common/decorators';
 
 @ApiTags('auth')
@@ -19,6 +19,15 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser('id') userId: string) {
     return this.auth.me(userId);
+  }
+
+  @ApiBearerAuth()
+  @Patch('profile')
+  updateProfile(
+    @CurrentUser('id') userId: string,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.auth.updateProfile(userId, dto);
   }
 
   @ApiBearerAuth()

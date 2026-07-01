@@ -21,6 +21,7 @@ export interface AuthUser {
   username?: string;
   phone?: string;
   department?: string;
+  address?: string;
   photoUrl?: string;
   role: Role;
   clinicId: string | null;
@@ -117,6 +118,26 @@ export interface Machine {
   name: string;
   description?: string;
   isActive: boolean;
+}
+
+export interface MachineUsageRow {
+  id: string;
+  consultationId: string;
+  date: string;
+  patientName: string | null;
+  durationMinutes: number;
+  notes: string | null;
+}
+
+export interface MachineUsageSummary {
+  machineId: string;
+  machineName: string;
+  totalMinutes: number;
+  totalHours: number;
+  totalSessions: number;
+  avgMinutes: number;
+  lastUsedAt: string | null;
+  recent: MachineUsageRow[];
 }
 
 export type ComplaintStatus =
@@ -344,6 +365,7 @@ export interface Employee {
   baseSalary: number;
   status: EmployeeStatus;
   address?: string;
+  emergencyContact?: string;
   createdAt: string;
   clinic?: { id: string; name: string };
 }

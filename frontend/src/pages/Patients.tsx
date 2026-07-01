@@ -14,7 +14,7 @@ import {
   Field,
   ErrorText,
 } from '../components/ui';
-import { formatDate } from '../lib/format';
+import { formatDate, todayISO } from '../lib/format';
 import { ExportMenu } from '../components/ExportMenu';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import type { ExportColumn } from '../lib/export';
@@ -47,8 +47,8 @@ export default function Patients() {
   const canWrite = (perm: string) => can(perm) && user?.role !== 'SUPER_ADMIN';
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Patient | null>(null);
   const [form, setForm] = useState({ ...empty });

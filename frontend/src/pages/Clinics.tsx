@@ -13,7 +13,7 @@ import {
   ErrorText,
   StatusPill,
 } from '../components/ui';
-import { formatDate } from '../lib/format';
+import { formatDate, todayISO } from '../lib/format';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { brandScaleVars, BRAND_PALETTE, DEFAULT_BRAND_HEX } from '../theme/brand';
 
@@ -21,8 +21,8 @@ export default function Clinics() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Clinic | null>(null);
   const [error, setError] = useState('');

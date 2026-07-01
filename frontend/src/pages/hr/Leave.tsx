@@ -20,7 +20,7 @@ import {
   Field,
   ErrorText,
 } from '../../components/ui';
-import { formatDate } from '../../lib/format';
+import { formatDate, todayISO } from '../../lib/format';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 
 const LEAVE_TYPES: { value: LeaveType; label: string }[] = [
@@ -65,8 +65,8 @@ export default function Leave() {
   const [typeFilter, setTypeFilter] = useState<LeaveType | ''>('');
   const [empFilter, setEmpFilter] = useState('');
   const [clinicId, setClinicId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
 
   const [modal, setModal] = useState(false);
   const [error, setError] = useState('');

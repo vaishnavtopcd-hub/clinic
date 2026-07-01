@@ -62,4 +62,8 @@ export class Employee extends BaseEntity {
 
   @Column({ nullable: true })
   address?: string;
+
+  /** Emergency contact (name and/or phone). */
+  @Column({ nullable: true })
+  emergencyContact?: string;
 }

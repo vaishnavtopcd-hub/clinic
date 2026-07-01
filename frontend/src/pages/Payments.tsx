@@ -66,9 +66,9 @@ function presetRange(preset: DatePreset): { from: string; to: string } {
 export default function Payments() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<PaymentStatus | ''>('DUE');
-  const [preset, setPreset] = useState<DatePreset>('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [preset, setPreset] = useState<DatePreset>('today');
+  const [dateFrom, setDateFrom] = useState(presetRange('today').from);
+  const [dateTo, setDateTo] = useState(presetRange('today').to);
 
   const applyPreset = (p: DatePreset) => {
     setPreset(p);

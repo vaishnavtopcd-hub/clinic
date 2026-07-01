@@ -14,13 +14,24 @@ import { CONFIGURABLE_ROLES, DEFAULT_ROLE_PERMISSIONS } from '../common/permissi
 
 dotenv.config();
 
+const dbUrl = process.env.DATABASE_URL;
+const dbSsl =
+  process.env.DB_SSL?.toLowerCase() === 'true'
+    ? { rejectUnauthorized: false }
+    : undefined;
+
 const ds = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database: process.env.DB_NAME || 'physio_clinic',
+  ...(dbUrl
+    ? { url: dbUrl }
+    : {
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432', 10),
+        username: process.env.DB_USERNAME || 'postgres',
+        password: process.env.DB_PASSWORD || 'postgres',
+        database: process.env.DB_NAME || 'physio_clinic',
+      }),
+  ssl: dbSsl,
   entities: [RolePermission],
   synchronize: false,
 });

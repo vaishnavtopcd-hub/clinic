@@ -13,6 +13,8 @@ interface AuthState {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  /** Re-fetch the current user (e.g. after a profile update). */
+  refreshUser: () => Promise<void>;
   /** True if the current user holds the given permission key. */
   can: (permission: string) => boolean;
 }
@@ -51,11 +53,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/login';
   };
 
+  const refreshUser = async () => {
+    const res = await api.get<AuthUser>('/auth/me');
+    setUser(res.data);
+  };
+
   const can = (permission: string) =>
     !!user?.permissions?.includes(permission);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, can }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, refreshUser, can }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -17,7 +17,7 @@ import {
   ErrorText,
   StatusPill,
 } from '../../components/ui';
-import { formatDate } from '../../lib/format';
+import { formatDate, todayISO } from '../../lib/format';
 import { ExportMenu } from '../../components/ExportMenu';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import type { ExportColumn } from '../../lib/export';
@@ -111,8 +111,8 @@ export default function Staff() {
   const [roleFilter, setRoleFilter] = useState<Role | ''>('');
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | ''>('');
   const [clinicId, setClinicId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState(todayISO());
+  const [dateTo, setDateTo] = useState(todayISO());
   const [sortBy, setSortBy] = useState<SortBy>('createdAt');
   const [order, setOrder] = useState<Order>('DESC');
 

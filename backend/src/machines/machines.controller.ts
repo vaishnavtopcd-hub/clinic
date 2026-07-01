@@ -39,6 +39,17 @@ export class MachinesController {
   }
 
   @RequirePermissions('machines.view')
+  @Get(':id/usage')
+  usage(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.machines.usageSummary(user, id, dateFrom, dateTo);
+  }
+
+  @RequirePermissions('machines.view')
   @Get(':id')
   findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.machines.findOne(user, id);
