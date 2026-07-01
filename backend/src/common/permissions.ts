@@ -62,6 +62,13 @@ export const PERMISSION_CATALOG: {
     permissions: [{ key: 'reports.view', label: 'View reports' }],
   },
   {
+    group: 'Clinical Note Templates',
+    permissions: [
+      { key: 'note-templates.view', label: 'View / use note templates' },
+      { key: 'note-templates.manage', label: 'Manage note templates' },
+    ],
+  },
+  {
     group: 'HR — Staff',
     permissions: [
       { key: 'hr.staff.view', label: 'View staff' },
@@ -108,7 +115,7 @@ export const ALL_PERMISSION_KEYS: string[] = PERMISSION_CATALOG.flatMap((g) =>
 );
 
 /** Every HR-module permission key. */
-export const HR_PERMISSION_KEYS: string[] = ALL_PERMISSION_KEYS.filter((k) =>
+const HR_PERMISSION_KEYS: string[] = ALL_PERMISSION_KEYS.filter((k) =>
   k.startsWith('hr.'),
 );
 
@@ -146,6 +153,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'payments.view',
     'payments.update',
     'machines.view',
+    // View and use (but not manage) clinical-note templates.
+    'note-templates.view',
   ],
   // Front-desk officer: runs reception — registers patients, books visits and
   // takes payments. No HR, no reports, no delete/manage rights.
@@ -161,5 +170,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'payments.view',
     'payments.update',
     'machines.view',
+    'note-templates.view',
   ],
 };

@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  Allow,
   IsArray,
   IsEnum,
   IsInt,
@@ -15,7 +16,7 @@ import {
 import { PaymentMethod, PaymentStatus } from '../common/enums';
 import { PaginationQuery } from '../common/pagination';
 
-export class MachineUsageDto {
+class MachineUsageDto {
   @IsUUID()
   machineId: string;
 
@@ -29,16 +30,40 @@ export class MachineUsageDto {
   notes?: string;
 }
 
-export class ClinicalNoteDto {
+class TemplateValueDto {
+  @IsString() fieldId: string;
+  @IsString() label: string;
+  @IsString() type: string;
+  // Arbitrary entered value (string | number | boolean | string[]).
+  @IsOptional() @Allow() value?: unknown;
+}
+
+class ClinicalNoteDto {
   @IsOptional() @IsString() assessment?: string;
   @IsOptional() @IsString() findings?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(10) painScale?: number;
   @IsOptional() @IsString() rangeOfMotion?: string;
   @IsOptional() @IsString() exerciseAdvice?: string;
   @IsOptional() @IsString() therapistNotes?: string;
+
+  // Dynamic template selection + snapshotted values.
+  @IsOptional() @IsUUID() templateId?: string;
+  @IsOptional() @IsString() templateName?: string;
+  @IsOptional() @Type(() => Number) @IsInt() templateVersion?: number;
+
+  // Full point-in-time snapshot of the template's field definitions. Kept as an
+  // opaque array (no @Type) so the complete field structure passes through the
+  // whitelisting pipe untouched.
+  @IsOptional() @IsArray() templateSnapshot?: unknown[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TemplateValueDto)
+  templateValues?: TemplateValueDto[];
 }
 
-export class PaymentDto {
+class PaymentDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)

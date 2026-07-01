@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   MinLength,
 } from 'class-validator';
 
@@ -61,4 +62,22 @@ export class UpdateClinicDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+}
+
+/**
+ * Branding/theme for a clinic. Only the primary colour is configurable today,
+ * but the shape is deliberately open so logo, secondary colour and favicon can
+ * be added later without changing the endpoint contract.
+ */
+export class UpdateClinicThemeDto {
+  // 6-digit hex colour, e.g. #7c4ee6 (the clinic's primary brand colour).
+  @Matches(/^#([0-9a-fA-F]{6})$/, {
+    message: 'primaryColor must be a 6-digit hex colour, e.g. #7c4ee6',
+  })
+  primaryColor: string;
+
+  // Optional logo image URL shown in the sidebar. Empty string clears it.
+  @IsOptional()
+  @IsString()
+  logoUrl?: string;
 }

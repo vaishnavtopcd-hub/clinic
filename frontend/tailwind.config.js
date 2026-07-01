@@ -37,18 +37,20 @@ export default {
         error: token('error'),
         info: token('info'),
 
-        // Primary — light violet (static scale, used for gradients / brand)
+        // Primary brand scale — driven by CSS variables (default violet in
+        // index.css) so a clinic's chosen colour themes the whole app at
+        // runtime. See theme/brand.ts.
         brand: {
-          50: '#f7f5ff',
-          100: '#efeaff',
-          200: '#ddd3ff',
-          300: '#c5b3ff',
-          400: '#a98cfb',
-          500: '#8f66f4',
-          600: '#7c4ee6',
-          700: '#6838c4',
-          800: '#532da0',
-          900: '#43287e',
+          50: token('brand-50'),
+          100: token('brand-100'),
+          200: token('brand-200'),
+          300: token('brand-300'),
+          400: token('brand-400'),
+          500: token('brand-500'),
+          600: token('brand-600'),
+          700: token('brand-700'),
+          800: token('brand-800'),
+          900: token('brand-900'),
         },
         // Accent — warm amber / gold. Numbered shades are static (used by
         // gradients); DEFAULT/foreground are theme-aware semantic tokens.

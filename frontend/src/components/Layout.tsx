@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -12,6 +12,7 @@ import {
   UserCog,
   BarChart3,
   ShieldCheck,
+  FileText,
   Settings,
   HeartPulse,
   Briefcase,
@@ -25,6 +26,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthContext';
 import { useClinicScope } from '../auth/ClinicScopeContext';
 import { api } from '../lib/api';
+import { applyBrandColor } from '../theme/brand';
 import { ThemeToggle } from './ThemeToggle';
 import type { Role, Clinic, Paginated } from '../lib/types';
 
@@ -49,6 +51,7 @@ const NAV: NavItem[] = [
   { to: '/machines', label: 'Machines', icon: Dumbbell, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER'], perm: 'machines.view' },
   { to: '/machine-complaints', label: 'Machine Complaints', icon: Wrench, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN'], perm: 'machine-complaints.view' },
   { to: '/reports', label: 'Reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN'], perm: 'reports.view', requiresClinic: true },
+  { to: '/note-templates', label: 'Note Templates', icon: FileText, roles: ['CLINIC_ADMIN'], perm: 'note-templates.manage', requiresClinic: true },
   { to: '/permissions', label: 'Roles & Permissions', icon: ShieldCheck, roles: ['SUPER_ADMIN'] },
   { to: '/settings', label: 'Settings', icon: Settings, roles: ['SUPER_ADMIN', 'CLINIC_ADMIN', 'PHYSIOTHERAPIST', 'FRONTEND_OFFICER', 'HR'] },
 ];
@@ -83,6 +86,31 @@ export default function Layout() {
       (await api.get<Paginated<Clinic>>('/clinics', { params: { limit: 100 } }))
         .data,
   });
+
+  // The clinic whose branding drives the sidebar: a super admin uses the clinic
+  // they've scoped into (none → default app branding); everyone else uses their
+  // own clinic.
+  const scopedClinic = clinicsQuery.data?.data.find(
+    (c) => c.id === activeClinicId,
+  );
+  const brandClinic = isSuper
+    ? scopedClinic
+      ? {
+          name: scopedClinic.name,
+          theme: scopedClinic.settings?.theme ?? null,
+        }
+      : null
+    : user?.clinic ?? null;
+
+  const brandColor = brandClinic?.theme?.primaryColor ?? null;
+  const brandName = brandClinic?.name ?? 'PhysioCare';
+  const brandLogo = brandClinic?.theme?.logoUrl ?? null;
+
+  // Apply the effective clinic brand colour app-wide. Falls back to the default
+  // violet when none is configured.
+  useEffect(() => {
+    applyBrandColor(brandColor ?? null);
+  }, [brandColor]);
 
   const visible = (n: NavItem) => {
     if (!user) return false;
@@ -120,10 +148,20 @@ export default function Layout() {
         }`}
       >
         <div className="flex h-16 items-center gap-3 border-b border-white/10 px-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent-400 to-accent-500 text-white shadow-sm">
-            <HeartPulse className="h-5 w-5" />
+          {brandLogo ? (
+            <img
+              src={brandLogo}
+              alt={brandName}
+              className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-white/20"
+            />
+          ) : (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent-400 to-accent-500 text-white shadow-sm">
+              <HeartPulse className="h-5 w-5" />
+            </span>
+          )}
+          <span className="truncate text-lg font-bold tracking-tight" title={brandName}>
+            {brandName}
           </span>
-          <span className="text-lg font-bold tracking-tight">PhysioCare</span>
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {items.map((item) => (

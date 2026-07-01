@@ -8,6 +8,12 @@ export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type PaymentMethod = 'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER';
 export type PaymentStatus = 'PAID' | 'DUE';
 
+/** Clinic branding/theme. Open shape — secondaryColor / favicon later. */
+export interface ClinicTheme {
+  primaryColor?: string;
+  logoUrl?: string;
+}
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -20,7 +26,7 @@ export interface AuthUser {
   clinicId: string | null;
   specialization?: string;
   permissions?: string[];
-  clinic?: { id: string; name: string } | null;
+  clinic?: { id: string; name: string; theme?: ClinicTheme | null } | null;
 }
 
 export const ROLES: Role[] = [
@@ -69,6 +75,8 @@ export interface Clinic {
   createdAt: string;
   /** Clinic Admin accounts assigned to this clinic (from the list endpoint). */
   admins?: ClinicAdmin[];
+  /** Free-form clinic settings, including branding/theme. */
+  settings?: { theme?: ClinicTheme } & Record<string, unknown>;
 }
 
 export interface User {
@@ -154,7 +162,93 @@ export interface ClinicalNote {
   rangeOfMotion?: string;
   exerciseAdvice?: string;
   therapistNotes?: string;
+  templateId?: string | null;
+  templateName?: string | null;
+  templateVersion?: number | null;
+  /** Full field structure captured when the note was created. */
+  templateSnapshot?: NoteTemplateField[] | null;
+  templateValues?: TemplateValueSnapshot[] | null;
 }
+
+// ---- Clinical note templates ----
+
+export type NoteFieldType =
+  | 'SINGLE_LINE_TEXT'
+  | 'MULTI_LINE_TEXT'
+  | 'NUMBER'
+  | 'DATE'
+  | 'DROPDOWN'
+  | 'RADIO'
+  | 'CHECKBOX'
+  | 'MULTI_SELECT'
+  | 'TOGGLE'
+  | 'FILE_UPLOAD';
+
+export interface TemplateFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface TemplateFieldValidation {
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+}
+
+export interface NoteTemplateField {
+  id: string;
+  type: NoteFieldType;
+  label: string;
+  placeholder?: string;
+  defaultValue?: unknown;
+  required: boolean;
+  order: number;
+  options?: TemplateFieldOption[];
+  validation?: TemplateFieldValidation;
+}
+
+export interface NoteTemplate {
+  id: string;
+  clinicId: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  /** Structural version, bumped each time the fields are edited. */
+  version: number;
+  fields: NoteTemplateField[];
+  createdAt: string;
+}
+
+/** A snapshotted template answer stored on a clinical note. */
+export interface TemplateValueSnapshot {
+  fieldId: string;
+  label: string;
+  type: NoteFieldType | string;
+  value: unknown;
+}
+
+/** Human label for each field type (UI). */
+export const NOTE_FIELD_TYPE_LABELS: Record<NoteFieldType, string> = {
+  SINGLE_LINE_TEXT: 'Single line text',
+  MULTI_LINE_TEXT: 'Multi-line text',
+  NUMBER: 'Number',
+  DATE: 'Date',
+  DROPDOWN: 'Dropdown',
+  RADIO: 'Radio buttons',
+  CHECKBOX: 'Checkbox',
+  MULTI_SELECT: 'Multi-select',
+  TOGGLE: 'Toggle',
+  FILE_UPLOAD: 'File upload',
+};
+
+/** Field types that require a list of options. */
+export const OPTION_FIELD_TYPES: NoteFieldType[] = [
+  'DROPDOWN',
+  'RADIO',
+  'MULTI_SELECT',
+];
 
 export interface MachineUsage {
   id: string;

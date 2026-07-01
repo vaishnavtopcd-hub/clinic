@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 
-export type Theme = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark' | 'system';
 type Resolved = 'light' | 'dark';
 
 const STORAGE_KEY = 'physio_theme';

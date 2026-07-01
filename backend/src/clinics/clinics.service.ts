@@ -134,4 +134,26 @@ export class ClinicsService {
     clinic.isActive = isActive;
     return this.clinics.save(clinic);
   }
+
+  /** Set the clinic's branding/theme (merged under settings.theme). */
+  async setTheme(
+    id: string,
+    theme: { primaryColor?: string; logoUrl?: string },
+  ) {
+    const clinic = await this.findOne(id);
+    const next = { ...(clinic.settings?.theme ?? {}), ...theme };
+    // An empty logo URL means "remove the logo" rather than store a blank.
+    if (theme.logoUrl === '') delete next.logoUrl;
+    clinic.settings = { ...(clinic.settings ?? {}), theme: next };
+    return this.clinics.save(clinic);
+  }
+
+  /** Clear the clinic's custom theme so it falls back to the default brand. */
+  async resetTheme(id: string) {
+    const clinic = await this.findOne(id);
+    const { theme, ...rest } = clinic.settings ?? {};
+    void theme;
+    clinic.settings = rest;
+    return this.clinics.save(clinic);
+  }
 }

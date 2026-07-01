@@ -106,7 +106,12 @@ export class AuthService {
       specialization: user.specialization,
       permissions,
       clinic: user.clinic
-        ? { id: user.clinic.id, name: user.clinic.name }
+        ? {
+            id: user.clinic.id,
+            name: user.clinic.name,
+            // Branding/theme so the client can apply the clinic's colours.
+            theme: user.clinic.settings?.theme ?? null,
+          }
         : null,
     };
   }

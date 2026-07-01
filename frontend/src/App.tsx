@@ -19,6 +19,7 @@ import MachineComplaints from './pages/MachineComplaints';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Permissions from './pages/Permissions';
+import NoteTemplates from './pages/NoteTemplates';
 import Staff from './pages/hr/Staff';
 import StaffProfile from './pages/hr/StaffProfile';
 import Employees from './pages/hr/Employees';
@@ -147,6 +148,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['SUPER_ADMIN']}>
               <Permissions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/note-templates"
+          element={
+            <ProtectedRoute roles={['CLINIC_ADMIN']}>
+              <NoteTemplates />
             </ProtectedRoute>
           }
         />

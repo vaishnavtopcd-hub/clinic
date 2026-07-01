@@ -8,8 +8,13 @@ import type {
   Machine,
   PaymentMethod,
   PaymentStatus,
+  NoteTemplate,
 } from '../lib/types';
 import { PageHeader, Card, Field, ErrorText, Spinner } from '../components/ui';
+import {
+  DynamicNoteFields,
+  buildTemplateSnapshot,
+} from '../components/DynamicNoteFields';
 import { todayISO } from '../lib/format';
 
 interface MachineRow {
@@ -43,6 +48,11 @@ export default function ConsultationForm() {
     exerciseAdvice: '',
     therapistNotes: '',
   });
+  // Dynamic clinical-note template (optional).
+  const [templateId, setTemplateId] = useState('');
+  const [templateValues, setTemplateValues] = useState<Record<string, unknown>>(
+    {},
+  );
   const [machines, setMachines] = useState<MachineRow[]>([]);
   const [payment, setPayment] = useState({
     consultationFee: '',
@@ -81,6 +91,27 @@ export default function ConsultationForm() {
       ).data,
   });
 
+  // Active note templates the physio can choose from.
+  const templateList = useQuery({
+    queryKey: ['note-templates-active'],
+    queryFn: async () =>
+      (await api.get<NoteTemplate[]>('/note-templates/active')).data,
+  });
+  const activeTemplate =
+    templateList.data?.find((t) => t.id === templateId) ?? null;
+
+  const chooseTemplate = (id: string) => {
+    setTemplateId(id);
+    const t = templateList.data?.find((x) => x.id === id);
+    // Seed values with each field's default.
+    const defaults: Record<string, unknown> = {};
+    t?.fields.forEach((f) => {
+      if (f.defaultValue !== undefined && f.defaultValue !== null)
+        defaults[f.id] = f.defaultValue;
+    });
+    setTemplateValues(defaults);
+  };
+
   // When opened from a patient's page (?patientId=…), preload that patient.
   const presetQuery = useQuery({
     queryKey: ['patient', presetPatient],
@@ -105,6 +136,18 @@ export default function ConsultationForm() {
           rangeOfMotion: clinical.rangeOfMotion || undefined,
           exerciseAdvice: clinical.exerciseAdvice || undefined,
           therapistNotes: clinical.therapistNotes || undefined,
+          ...(activeTemplate && {
+            templateId: activeTemplate.id,
+            templateName: activeTemplate.name,
+            templateVersion: activeTemplate.version,
+            // Freeze the exact structure used, so later edits to this template
+            // never change this record.
+            templateSnapshot: activeTemplate.fields,
+            templateValues: buildTemplateSnapshot(
+              activeTemplate.fields,
+              templateValues,
+            ),
+          }),
         },
         machineUsages: machines
           .filter((m) => m.machineId && m.durationMinutes)
@@ -322,6 +365,52 @@ export default function ConsultationForm() {
         {/* Clinical notes */}
         <Card>
           <SectionTitle n={3} title="Clinical Notes" />
+
+          {/* Optional dynamic template chosen by the physio */}
+          {templateList.data && templateList.data.length > 0 && (
+            <div className="mb-4 rounded-lg border border-border bg-muted/40 p-4">
+              <Field label="Use a Note Template (optional)">
+                <select
+                  className="input"
+                  value={templateId}
+                  onChange={(e) => chooseTemplate(e.target.value)}
+                >
+                  <option value="">No template — use standard fields</option>
+                  {templateList.data.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {activeTemplate && (
+                <div className="mt-4">
+                  {activeTemplate.description && (
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      {activeTemplate.description}
+                    </p>
+                  )}
+                  {activeTemplate.fields.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      This template has no fields.
+                    </p>
+                  ) : (
+                    <DynamicNoteFields
+                      fields={activeTemplate.fields}
+                      values={templateValues}
+                      onChange={(fieldId, value) =>
+                        setTemplateValues((prev) => ({
+                          ...prev,
+                          [fieldId]: value,
+                        }))
+                      }
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Assessment">
               <textarea

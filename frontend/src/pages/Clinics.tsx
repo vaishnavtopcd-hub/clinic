@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, apiError } from '../lib/api';
 import type { Paginated, Clinic } from '../lib/types';
@@ -15,6 +15,7 @@ import {
 } from '../components/ui';
 import { formatDate } from '../lib/format';
 import { DateRangeFilter } from '../components/DateRangeFilter';
+import { brandScaleVars, BRAND_PALETTE, DEFAULT_BRAND_HEX } from '../theme/brand';
 
 export default function Clinics() {
   const qc = useQueryClient();
@@ -113,6 +114,47 @@ export default function Clinics() {
     setAdminModal(true);
   };
 
+  // --- Theme / branding (super admin sets each clinic's primary colour) ---
+  const [themeModal, setThemeModal] = useState(false);
+  const [themeFor, setThemeFor] = useState<Clinic | null>(null);
+  const [themeColor, setThemeColor] = useState(DEFAULT_BRAND_HEX);
+  const [themeLogo, setThemeLogo] = useState('');
+
+  const openTheme = (c: Clinic) => {
+    setThemeFor(c);
+    setThemeColor(c.settings?.theme?.primaryColor ?? DEFAULT_BRAND_HEX);
+    setThemeLogo(c.settings?.theme?.logoUrl ?? '');
+    setThemeModal(true);
+  };
+
+  const closeTheme = () => setThemeModal(false);
+
+  // Save / reset only persist the clinic's colour. The app re-themes solely for
+  // that clinic — its own users, and the super admin while scoped into it (the
+  // Layout effect reacts to the refreshed clinics list); the super admin's
+  // general view is left untouched.
+  const saveTheme = useMutation({
+    mutationFn: async () =>
+      api.patch(`/clinics/${themeFor!.id}/theme`, {
+        primaryColor: themeColor,
+        logoUrl: themeLogo.trim(),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clinics'] });
+      qc.invalidateQueries({ queryKey: ['clinics-selector'] });
+      setThemeModal(false);
+    },
+  });
+
+  const resetTheme = useMutation({
+    mutationFn: async () => api.delete(`/clinics/${themeFor!.id}/theme`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clinics'] });
+      qc.invalidateQueries({ queryKey: ['clinics-selector'] });
+      setThemeModal(false);
+    },
+  });
+
   const openCreate = () => {
     setEditing(null);
     setForm({
@@ -196,11 +238,27 @@ export default function Clinics() {
               <tbody className="divide-y divide-border">
                 {list.data.data.map((c) => (
                   <tr key={c.id} className="hover:bg-muted">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-foreground">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">{c.address}</p>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-3 shrink-0 rounded-full ring-1 ring-border"
+                          style={{
+                            backgroundColor:
+                              c.settings?.theme?.primaryColor ?? DEFAULT_BRAND_HEX,
+                          }}
+                          title={
+                            c.settings?.theme?.primaryColor
+                              ? `Theme: ${c.settings.theme.primaryColor}`
+                              : 'Default theme'
+                          }
+                        />
+                        <p className="font-medium text-foreground">{c.name}</p>
+                      </div>
+                      <p className="ml-5 text-xs text-muted-foreground">
+                        {c.address}
+                      </p>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-top">
                       {c.admins && c.admins.length > 0 ? (
                         <div className="space-y-0.5">
                           {c.admins.map((a) => (
@@ -226,36 +284,44 @@ export default function Clinics() {
                         </button>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="px-4 py-3 align-top text-muted-foreground">
                       {c.phone || '—'}
                       <br />
                       <span className="text-xs text-muted-foreground">{c.email}</span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
+                    <td className="px-4 py-3 align-top whitespace-nowrap text-muted-foreground">
                       {formatDate(c.createdAt)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-top">
                       <StatusPill active={c.isActive} />
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        className="text-primary hover:underline"
-                        onClick={() => openEdit(c)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="ml-3 text-success hover:underline"
-                        onClick={() => openAddAdmin(c)}
-                      >
-                        Add Admin
-                      </button>
-                      <button
-                        className="ml-3 text-muted-foreground hover:underline"
-                        onClick={() => toggle.mutate(c)}
-                      >
-                        {c.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                        <button
+                          className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-muted"
+                          onClick={() => openEdit(c)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-success transition-colors hover:bg-muted"
+                          onClick={() => openAddAdmin(c)}
+                        >
+                          Add Admin
+                        </button>
+                        <button
+                          className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-muted"
+                          onClick={() => openTheme(c)}
+                        >
+                          Theme
+                        </button>
+                        <button
+                          className="min-w-[88px] rounded-md border border-border px-2.5 py-1 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+                          onClick={() => toggle.mutate(c)}
+                        >
+                          {c.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -457,6 +523,150 @@ export default function Clinics() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={themeModal}
+        onClose={closeTheme}
+        title={`Theme${themeFor ? ` — ${themeFor.name}` : ''}`}
+      >
+        <div className="space-y-5">
+          <p className="text-sm text-muted-foreground">
+            Pick the clinic's primary brand colour. It applies across the
+            clinic's portal — buttons, links, navigation, active states and
+            icons. Changes preview live below.
+          </p>
+
+          <div>
+            <p className="label">Palette</p>
+            <div className="flex flex-wrap gap-2">
+              {BRAND_PALETTE.map((p) => {
+                const selected =
+                  p.hex.toLowerCase() === themeColor.toLowerCase();
+                return (
+                  <button
+                    key={p.hex}
+                    type="button"
+                    title={p.name}
+                    onClick={() => setThemeColor(p.hex)}
+                    className={`h-8 w-8 rounded-full ring-2 ring-offset-2 ring-offset-card transition ${
+                      selected ? 'ring-foreground' : 'ring-transparent'
+                    }`}
+                    style={{ backgroundColor: p.hex }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="label">Custom colour</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={themeColor}
+                onChange={(e) => setThemeColor(e.target.value)}
+                className="h-10 w-14 cursor-pointer rounded-lg border border-border bg-card p-1"
+              />
+              <input
+                className="input max-w-[160px] font-mono"
+                value={themeColor}
+                onChange={(e) => setThemeColor(e.target.value)}
+                placeholder="#7c4ee6"
+                maxLength={7}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="label">Logo image URL (optional)</p>
+            <input
+              className="input"
+              value={themeLogo}
+              onChange={(e) => setThemeLogo(e.target.value)}
+              placeholder="https://…/logo.png"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Shown in the sidebar beside the clinic name. Leave blank to use the
+              default icon.
+            </p>
+          </div>
+
+          {/* Preview — scoped to this box only via local CSS variables, so it
+              never recolours the rest of the app. */}
+          <div
+            className="rounded-lg border border-border p-4"
+            style={
+              /^#[0-9a-fA-F]{6}$/.test(themeColor)
+                ? (brandScaleVars(themeColor) as CSSProperties)
+                : undefined
+            }
+          >
+            <p className="mb-3 text-xs font-semibold uppercase text-muted-foreground">
+              Preview
+            </p>
+            {/* Sidebar header preview (logo + clinic name) */}
+            <div className="mb-3 flex items-center gap-3">
+              {themeLogo.trim() ? (
+                <img
+                  src={themeLogo.trim()}
+                  alt={themeFor?.name ?? ''}
+                  className="h-9 w-9 shrink-0 rounded-xl object-cover ring-1 ring-border"
+                />
+              ) : (
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  {themeFor?.name?.[0]?.toUpperCase() ?? 'C'}
+                </span>
+              )}
+              <span className="truncate text-base font-bold text-foreground">
+                {themeFor?.name}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" className="btn-primary">
+                Primary
+              </button>
+              <span className="font-medium text-primary">Link text</span>
+              <span className="inline-flex rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                Badge
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              className="text-sm text-error hover:underline disabled:opacity-50"
+              onClick={() => {
+                setThemeColor(DEFAULT_BRAND_HEX);
+                resetTheme.mutate();
+              }}
+              disabled={resetTheme.isPending || saveTheme.isPending}
+            >
+              Reset to default
+            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={closeTheme}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => saveTheme.mutate()}
+                disabled={
+                  saveTheme.isPending ||
+                  !/^#[0-9a-fA-F]{6}$/.test(themeColor)
+                }
+              >
+                {saveTheme.isPending ? 'Saving…' : 'Save Theme'}
+              </button>
+            </div>
+          </div>
+        </div>
       </Modal>
     </div>
   );

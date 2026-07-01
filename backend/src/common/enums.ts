@@ -76,3 +76,23 @@ export enum ComplaintSeverity {
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
 }
+
+// ---- Clinical note templates ----
+
+/**
+ * Configurable field types for dynamic clinical-note templates. New types can
+ * be appended here and handled in the renderer without touching the schema
+ * (template fields are stored as JSONB).
+ */
+export enum NoteFieldType {
+  SINGLE_LINE_TEXT = 'SINGLE_LINE_TEXT',
+  MULTI_LINE_TEXT = 'MULTI_LINE_TEXT',
+  NUMBER = 'NUMBER',
+  DATE = 'DATE',
+  DROPDOWN = 'DROPDOWN',
+  RADIO = 'RADIO',
+  CHECKBOX = 'CHECKBOX',
+  MULTI_SELECT = 'MULTI_SELECT',
+  TOGGLE = 'TOGGLE',
+  FILE_UPLOAD = 'FILE_UPLOAD',
+}

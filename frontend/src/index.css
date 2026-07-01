@@ -14,8 +14,8 @@
     --muted-fg: 100 116 139; /* slate-500 */
     --border: 226 232 240; /* slate-200 */
     --input: 203 213 225; /* slate-300 */
-    --ring: 124 78 230; /* violet */
-    --primary: 124 78 230; /* #7c4ee6 */
+    --ring: var(--brand-600); /* follows the clinic brand colour */
+    --primary: var(--brand-600); /* follows the clinic brand colour */
     --primary-fg: 255 255 255;
     --secondary: 241 245 249;
     --secondary-fg: 51 65 85; /* slate-700 */
@@ -25,6 +25,21 @@
     --warning: 217 119 6; /* amber-600 */
     --error: 220 38 38; /* red-600 */
     --info: 37 99 235; /* blue-600 */
+
+    /* ---- Brand scale (default violet) ----
+       Space-separated RGB channels so Tailwind's /<alpha-value> keeps working.
+       These are overridden at runtime per-clinic (see theme/brand.ts), which is
+       why --primary / --ring below reference the same channels. */
+    --brand-50: 247 245 255;
+    --brand-100: 239 234 255;
+    --brand-200: 221 211 255;
+    --brand-300: 197 179 255;
+    --brand-400: 169 140 251;
+    --brand-500: 143 102 244;
+    --brand-600: 124 78 230;
+    --brand-700: 104 56 196;
+    --brand-800: 83 45 160;
+    --brand-900: 67 40 126;
   }
 
   .dark {
@@ -37,8 +52,8 @@
     --muted-fg: 148 163 184; /* slate-400 */
     --border: 51 65 85; /* slate-700 */
     --input: 71 85 105; /* slate-600 */
-    --ring: 154 120 255; /* bright violet */
-    --primary: 154 120 255; /* #9a78ff */
+    --ring: var(--brand-400); /* lighter brand shade reads better on dark */
+    --primary: var(--brand-400); /* lighter brand shade reads better on dark */
     --primary-fg: 255 255 255;
     --secondary: 51 65 85;
     --secondary-fg: 226 232 240;

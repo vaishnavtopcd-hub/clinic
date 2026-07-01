@@ -19,6 +19,7 @@ import { ReportsModule } from './reports/reports.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { HrModule } from './hr/hr.module';
 import { MachineComplaintsModule } from './machine-complaints/machine-complaints.module';
+import { NoteTemplatesModule } from './note-templates/note-templates.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { MachineComplaintsModule } from './machine-complaints/machine-complaints
     PermissionsModule,
     HrModule,
     MachineComplaintsModule,
+    NoteTemplatesModule,
   ],
   providers: [
     // Global auth: every route requires a valid JWT unless marked @Public().

@@ -3,7 +3,12 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, apiError } from '../lib/api';
 import { useAuth } from '../auth/AuthContext';
-import type { Consultation, PaymentMethod, PaymentStatus } from '../lib/types';
+import type {
+  Consultation,
+  ClinicalNote,
+  PaymentMethod,
+  PaymentStatus,
+} from '../lib/types';
 import {
   PageHeader,
   Card,
@@ -15,6 +20,10 @@ import {
 } from '../components/ui';
 import { currency, formatDateTime } from '../lib/format';
 import { generateInvoice } from '../lib/invoice';
+import {
+  formatTemplateValue,
+  formatFieldValue,
+} from '../components/DynamicNoteFields';
 
 export default function ConsultationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -131,6 +140,8 @@ export default function ConsultationDetail() {
           ) : (
             <p className="text-sm text-muted-foreground">No clinical notes recorded.</p>
           )}
+
+          <TemplateSection note={c.clinicalNote} />
 
           <h3 className="mb-3 mt-6 font-semibold text-foreground">
             Machines Used ({totalMins} min total)
@@ -263,6 +274,64 @@ export default function ConsultationDetail() {
       </Modal>
     </div>
   );
+}
+
+/**
+ * Renders a completed consultation's template answers from the point-in-time
+ * snapshot captured at creation, so later template edits never change it.
+ * Falls back to the legacy value-only snapshot for records saved before the
+ * full-structure snapshot existed.
+ */
+function TemplateSection({ note }: { note?: ClinicalNote }) {
+  if (!note) return null;
+
+  // Preferred path: full field structure was snapshotted.
+  if (note.templateSnapshot?.length) {
+    const valueById = new Map(
+      (note.templateValues ?? []).map((tv) => [tv.fieldId, tv.value]),
+    );
+    const fields = [...note.templateSnapshot].sort((a, b) => a.order - b.order);
+    return (
+      <>
+        <h3 className="mb-3 mt-6 font-semibold text-foreground">
+          {note.templateName || 'Template'}
+        </h3>
+        <dl className="grid gap-3 text-sm sm:grid-cols-2">
+          {fields.map((f) => (
+            <Info
+              key={f.id}
+              label={f.label}
+              value={formatFieldValue(f, valueById.get(f.id))}
+              full={f.type === 'MULTI_LINE_TEXT'}
+            />
+          ))}
+        </dl>
+      </>
+    );
+  }
+
+  // Legacy fallback: value-only snapshot.
+  if (note.templateValues?.length) {
+    return (
+      <>
+        <h3 className="mb-3 mt-6 font-semibold text-foreground">
+          {note.templateName || 'Template'}
+        </h3>
+        <dl className="grid gap-3 text-sm sm:grid-cols-2">
+          {note.templateValues.map((tv) => (
+            <Info
+              key={tv.fieldId}
+              label={tv.label}
+              value={formatTemplateValue(tv.value)}
+              full={tv.type === 'MULTI_LINE_TEXT'}
+            />
+          ))}
+        </dl>
+      </>
+    );
+  }
+
+  return null;
 }
 
 function Info({
